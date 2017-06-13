@@ -19,7 +19,7 @@ import static io.github.stemlab.entity.mapper.FeatureMapper.ID;
 @Repository
 public class SpatialDaoImpl implements SpatialDao {
 
-    private static String TABLE = "planet_osm_line";
+    private static String TABLE = "kz.lakes";
     private static String GEOM = "way";
     private static String SRID = "3857";
     private JdbcTemplate jdbcTemplate;
@@ -38,7 +38,7 @@ public class SpatialDaoImpl implements SpatialDao {
     }
 
     public List<Feature> getCrosses(Envelope envelope) {
-        final String query = "select " + ID + ",st_asgeojson(" + GEOM + "), 'crosses' as spatial_type from " + TABLE + " where ST_Crosses(ST_SetSRID(" + GEOM + ", '" + SRID + "'),\n" +
+        final String query = "select " + ID + ",st_asgeojson(" + GEOM + "), 'crosses' as spatial_type from " + TABLE + " where ST_Overlaps(ST_SetSRID(" + GEOM + ", '" + SRID + "'),\n" +
                 "        ST_SetSRID(ST_MakeEnvelope(\n" +
                 "        ?, ?, ?, ?), '" + SRID + "'))";
         return jdbcTemplate.query(query, new Object[]{envelope.getxMin(), envelope.getyMin(), envelope.getxMax(), envelope.getyMax()}, new FeatureMapper());

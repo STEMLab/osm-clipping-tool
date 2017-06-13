@@ -14,7 +14,7 @@
 
     var wmsSource = new ol.source.ImageWMS({
         url: 'http://localhost:8081/geoserver/osm_demo/wms',
-        params: {'LAYERS': 'osm_demo:planet_osm_line'}
+        params: {'LAYERS': 'osm_demo:lakes'}
     });
 
     var wmsLayer = new ol.layer.Image({
@@ -26,12 +26,12 @@
     });
 
 
-    var busanLonLat = [129.080147, 35.233936];
+    var busanLonLat = [76.879196, 43.275867];
     var busantonWebMercator = ol.proj.fromLonLat(busanLonLat);
 
     var view = new ol.View({
         center: busantonWebMercator,
-        zoom: 16
+        zoom: 12
     });
 
     var vectorSource = new ol.source.Vector({});
@@ -63,7 +63,7 @@
     });
 
     var map = new ol.Map({
-        layers: [osm, vectorLayer],
+        layers: [osm,wmsLayer, vectorLayer],
         target: 'map',
         view: view
     });
@@ -73,7 +73,9 @@
     map.addInteraction(select);
 
     // a DragBox interaction used to select features by drawing boxes
-    var dragBox = new ol.interaction.DragBox({});
+    var dragBox = new ol.interaction.DragBox({
+        condition: ol.events.condition.platformModifierKeyOnly
+    });
 
     map.addInteraction(dragBox);
 
@@ -113,6 +115,18 @@
             }
         );
     }
+
+    var displayFeatureInfo = function(pixel) {
+
+        var feature = map.forEachFeatureAtPixel(pixel, function(feature) {
+            return feature;
+        });
+        console.log(feature)
+    };
+
+    map.on('click', function(evt) {
+        displayFeatureInfo(evt.pixel);
+    });
 
 </script>
 </body>
