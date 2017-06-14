@@ -67,5 +67,6 @@ public class SpatialDaoImpl implements SpatialDao {
                 "        ST_SetSRID(ST_MakeEnvelope(\n" +
                 envelope.getxMin()+", "+envelope.getyMin()+", "+envelope.getxMax()+", "+envelope.getyMax()+"), '" + SRID + "'))";
         return jdbcTemplate.query(query+clause, new FeatureMapper());
+
     }
 }
