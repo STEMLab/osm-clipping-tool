@@ -20,8 +20,12 @@ import static io.github.stemlab.entity.mapper.FeatureMapper.ID;
 public class SpatialDaoImpl implements SpatialDao {
 
     private static String TABLE = "kz.lakes";
-    private static String GEOM = "way";
+    public static String GEOM = "geom";
     private static String SRID = "3857";
+    private static String SCHEMA_NAME = "converter_data";
+    public static String OSM_ID = "id";
+    public static String OSM_NAME = "name";
+
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -42,5 +46,26 @@ public class SpatialDaoImpl implements SpatialDao {
                 "        ST_SetSRID(ST_MakeEnvelope(\n" +
                 "        ?, ?, ?, ?), '" + SRID + "'))";
         return jdbcTemplate.query(query, new Object[]{envelope.getxMin(), envelope.getyMin(), envelope.getxMax(), envelope.getyMax()}, new FeatureMapper());
+    }
+
+    public List<Feature> getintersects(Envelope envelope, String... tables) {
+        String[] sqls = new String[tables.length];
+        for (int i=0; i<tables.length;i++) {
+            sqls[i] = "select " + OSM_ID + "," + OSM_NAME+ ",'"+tables[i]+"' as tablename, st_asgeojson(" + GEOM + ") from "+ SCHEMA_NAME +"."+ tables[i];
+        }
+
+        String query = "";
+        for (int i=0; i<sqls.length;i++){
+            if(i!=sqls.length-1){
+                query += sqls[i] + " UNION ";
+            }else{
+                query += sqls[i];
+            }
+        }
+
+        String clause = " where ST_Intersects(" + GEOM + ",\n" +
+                "        ST_SetSRID(ST_MakeEnvelope(\n" +
+                envelope.getxMin()+", "+envelope.getyMin()+", "+envelope.getxMax()+", "+envelope.getyMax()+"), '" + SRID + "'))";
+        return jdbcTemplate.query(query+clause, new FeatureMapper());
     }
 }

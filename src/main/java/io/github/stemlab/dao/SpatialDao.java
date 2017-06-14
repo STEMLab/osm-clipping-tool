@@ -13,4 +13,6 @@ public interface SpatialDao {
     List<Feature> getWithin(Envelope envelope);
 
     List<Feature> getCrosses(Envelope envelope);
+
+    List<Feature> getintersects(Envelope envelope, String... tables);
 }

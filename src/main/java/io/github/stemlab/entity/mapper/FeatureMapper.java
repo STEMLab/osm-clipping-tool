@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 
+import static io.github.stemlab.dao.impl.SpatialDaoImpl.OSM_ID;
 import static io.github.stemlab.utils.JsonUtils.fromJson;
 
 public class FeatureMapper implements RowMapper {
@@ -23,10 +24,12 @@ public class FeatureMapper implements RowMapper {
 
     public Object mapRow(ResultSet resultSet, int i) throws SQLException {
         Feature feature = new Feature();
-        feature.setId(resultSet.getLong(ID));
+        feature.setId(resultSet.getLong(OSM_ID));
         feature.setGeometry(fromJson(resultSet.getString(GEOMETRY_FUNCTION_ST_ASGEOJSON), Geometry.class));
         HashMap<String, String> properties = new HashMap<String, String>();
-        properties.put("spatialType", SpatialType.valueOf(resultSet.getString(SPATIAL_TYPE).toUpperCase()).toString());
+        //properties.put("spatialType", SpatialType.valueOf(resultSet.getString(SPATIAL_TYPE).toUpperCase()).toString());
+        properties.put("tablename", resultSet.getString("tablename"));
+        properties.put("name", resultSet.getString("name"));
         feature.setProperties(properties);
         return feature;
     }

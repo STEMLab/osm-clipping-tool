@@ -25,4 +25,8 @@ public class SpatialServiceImpl implements SpatialService {
     public List<Feature> getCrosses(Envelope envelope) {
         return spatialDao.getCrosses(envelope);
     }
+
+    public List<Feature> getintersects(Envelope envelope, String... tables) {
+        return spatialDao.getintersects(envelope,tables);
+    }
 }
