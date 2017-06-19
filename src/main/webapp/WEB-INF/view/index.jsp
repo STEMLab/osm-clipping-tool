@@ -4,8 +4,10 @@
     <title>OSM Tool Demo</title>
     <meta charset="utf-8">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/static/css/ol.css" type="text/css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/static/css/ol3-layerswitcher.css" type="text/css">
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/static/css/bootstrap.min.css" type="text/css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/static/css/ol3-layerswitcher.css"
+          type="text/css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/static/css/bootstrap.min.css"
+          type="text/css">
     <script src="${pageContext.request.contextPath}/resources/static/js/ol.js"></script>
     <script src="${pageContext.request.contextPath}/resources/static/js/jquery-3.2.1.min.js"></script>
     <script src="${pageContext.request.contextPath}/resources/static/js/ol3-layerswitcher.js"></script>
@@ -13,8 +15,8 @@
         .ol-popup {
             position: absolute;
             background-color: white;
-            -webkit-filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
-            filter: drop-shadow(0 1px 4px rgba(0,0,0,0.2));
+            -webkit-filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.2));
+            filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.2));
             padding: 15px;
             border-radius: 10px;
             border: 1px solid #cccccc;
@@ -22,6 +24,7 @@
             left: -50px;
             min-width: 280px;
         }
+
         .ol-popup:after, .ol-popup:before {
             top: 100%;
             border: solid transparent;
@@ -31,24 +34,28 @@
             position: absolute;
             pointer-events: none;
         }
+
         .ol-popup:after {
             border-top-color: white;
             border-width: 10px;
             left: 48px;
             margin-left: -10px;
         }
+
         .ol-popup:before {
             border-top-color: #cccccc;
             border-width: 11px;
             left: 48px;
             margin-left: -11px;
         }
+
         .ol-popup-closer {
             text-decoration: none;
             position: absolute;
             top: 2px;
             right: 8px;
         }
+
         .ol-popup-closer:after {
             content: "x";
         }
@@ -59,12 +66,18 @@
 <div id="info" class="row" style="color:white;position: absolute;top: 20px;left: 200px;background-color: #7b98bc;">
     <div class="form-inline">
         <span style="margin-left: 10px;">Press ctrl to select range: </span>
-    <label class="checkbox">
-        <input type="checkbox" id="inlineCheckbox1" value="road" name = "tables" checked> Road
-    </label>
-    <label class="checkbox">
-        <input type="checkbox" id="inlineCheckbox2" name = "tables" value="building"> Building
-    </label>
+        <label class="checkbox">
+            <input type="checkbox" id="inlineCheckbox1" value="road" name="tables"> Road
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" id="inlineCheckbox2" name="tables" value="building"> Building
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" id="inlineCheckbox3" value="wood" name="tables"> Wood
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" id="inlineCheckbox4" name="tables" value="water"> Water
+        </label>
     </div>
 </div>
 <div id="popup" class="ol-popup">
@@ -92,7 +105,7 @@
         }
     }));
 
-    closer.onclick = function() {
+    closer.onclick = function () {
         overlay.setPosition(undefined);
         closer.blur();
         return false;
@@ -100,17 +113,17 @@
 
     var wmsSource = new ol.source.ImageWMS({
         url: 'http://localhost:8081/geoserver/osm_demo/wms',
-        params: {'LAYERS': 'osm_demo:lakes'}
+        params: {'LAYERS': ''}
     });
 
     var wmsLayer = new ol.layer.Image({
-        title:'Lakes',
-        visible:false,
+        title: 'WMS',
+        visible: false,
         source: wmsSource
     });
 
     var osm = new ol.layer.Tile({
-        title:'OpenStreetMap',
+        title: 'OpenStreetMap',
         type: 'base',
         source: new ol.source.OSM()
     });
@@ -134,21 +147,21 @@
     var vectorSource = new ol.source.Vector({});
 
     /*var styles = {
-        'CROSSES': new ol.style.Style({
-            stroke: new ol.style.Stroke({
-                color: 'red',
-                lineDash: [4],
-                width: 3
-            })
-        }),
-        'WITHIN': new ol.style.Style({
-            stroke: new ol.style.Stroke({
-                color: 'green',
-                lineDash: [4],
-                width: 3
-            })
-        })
-    };*/
+     'CROSSES': new ol.style.Style({
+     stroke: new ol.style.Stroke({
+     color: 'red',
+     lineDash: [4],
+     width: 3
+     })
+     }),
+     'WITHIN': new ol.style.Style({
+     stroke: new ol.style.Stroke({
+     color: 'green',
+     lineDash: [4],
+     width: 3
+     })
+     })
+     };*/
     var styles = {
         'building': new ol.style.Style({
             stroke: new ol.style.Stroke({
@@ -158,6 +171,20 @@
             })
         }),
         'road': new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                color: 'black',
+                lineDash: [4],
+                width: 3
+            })
+        }),
+        'water': new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                color: 'blue',
+                lineDash: [4],
+                width: 3
+            })
+        }),
+        'wood': new ol.style.Style({
             stroke: new ol.style.Stroke({
                 color: 'green',
                 lineDash: [4],
@@ -180,13 +207,13 @@
         layers: [
             new ol.layer.Group({
                 title: "Base maps",
-                layers:[
-                    osm,google
+                layers: [
+                    google, osm
                 ]
             }),
             new ol.layer.Group({
                 title: 'Features',
-                layers:[
+                layers: [
                     wmsLayer
                 ]
             }),
@@ -217,7 +244,7 @@
         var extent = dragBox.getGeometry().getExtent();
         vectorSource.clear();
         /*addCrossesData(extent);
-        addWithinData(extent);*/
+         addWithinData(extent);*/
         addIntersectsDataData(extent);
     });
 
@@ -225,11 +252,11 @@
 
         var tables = [];
 
-        $("input:checkbox[name=tables]:checked").each(function(){
+        $("input:checkbox[name=tables]:checked").each(function () {
             tables.push($(this).val());
         });
 
-        if(tables.length==0){
+        if (tables.length == 0) {
             alert("Select at least one feature!");
             return;
         }
@@ -279,18 +306,29 @@
         );
     }
 
-    var displayFeatureInfo = function(pixel,coordinate) {
+    var displayFeatureInfo = function (pixel, coordinate) {
 
-        var feature = map.forEachFeatureAtPixel(pixel, function(feature) {
+        var feature = map.forEachFeatureAtPixel(pixel, function (feature) {
             return feature;
         });
         console.log(feature);
-        content.innerHTML = 'You clicked here:';
+        content.innerHTML = 'Type: '+feature.getProperties().tablename+' </br> Description:' + feature.getProperties().name;
         overlay.setPosition(coordinate);
     };
 
-    map.on('click', function(evt) {
-        displayFeatureInfo(evt.pixel,evt.coordinate);
+    map.on('click', function (evt) {
+        displayFeatureInfo(evt.pixel, evt.coordinate);
+    });
+
+    $("input:checkbox[name=tables]").change(function() {
+        var tables = [];
+        $("input:checkbox[name=tables]:checked").each(function () {
+            tables.push("osm_demo:"+$(this).val());
+        });
+        var params = wmsSource.getParams();
+        params.LAYERS = tables.join();
+        wmsSource.updateParams(params);
+        wmsSource.refresh();
     });
 
 </script>

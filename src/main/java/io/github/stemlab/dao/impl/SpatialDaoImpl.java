@@ -50,8 +50,14 @@ public class SpatialDaoImpl implements SpatialDao {
 
     public List<Feature> getintersects(Envelope envelope, String... tables) {
         String[] sqls = new String[tables.length];
+
+
+        String clause = " where ST_Intersects(" + GEOM + ",\n" +
+                "        ST_SetSRID(ST_MakeEnvelope(\n" +
+                envelope.getxMin()+", "+envelope.getyMin()+", "+envelope.getxMax()+", "+envelope.getyMax()+"), '" + SRID + "'))";
+
         for (int i=0; i<tables.length;i++) {
-            sqls[i] = "select " + OSM_ID + "," + OSM_NAME+ ",'"+tables[i]+"' as tablename, st_asgeojson(" + GEOM + ") from "+ SCHEMA_NAME +"."+ tables[i];
+            sqls[i] = "select " + OSM_ID + "," + OSM_NAME+ ",'"+tables[i]+"' as tablename, st_asgeojson(" + GEOM + ") from "+ SCHEMA_NAME +"."+ tables[i] + clause;
         }
 
         String query = "";
@@ -63,10 +69,8 @@ public class SpatialDaoImpl implements SpatialDao {
             }
         }
 
-        String clause = " where ST_Intersects(" + GEOM + ",\n" +
-                "        ST_SetSRID(ST_MakeEnvelope(\n" +
-                envelope.getxMin()+", "+envelope.getyMin()+", "+envelope.getxMax()+", "+envelope.getyMax()+"), '" + SRID + "'))";
-        return jdbcTemplate.query(query+clause, new FeatureMapper());
+
+        return jdbcTemplate.query(query, new FeatureMapper());
 
     }
 }
