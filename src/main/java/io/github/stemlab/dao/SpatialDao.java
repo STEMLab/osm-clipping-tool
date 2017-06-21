@@ -10,9 +10,7 @@ import java.util.List;
  */
 
 public interface SpatialDao {
-    List<Feature> getWithin(Envelope envelope);
+    List<Feature> getOSMIntersectsWithTopologyType(Envelope envelope, String table);
 
-    List<Feature> getCrosses(Envelope envelope);
-
-    List<Feature> getintersects(Envelope envelope, String... tables);
+    List<Feature> getKRIntersectsWithTopologyType(Envelope envelope, String table);
 }

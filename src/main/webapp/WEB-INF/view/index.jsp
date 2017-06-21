@@ -8,81 +8,72 @@
           type="text/css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/static/css/bootstrap.min.css"
           type="text/css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/resources/static/css/style.css"
+          type="text/css">
     <script src="${pageContext.request.contextPath}/resources/static/js/ol.js"></script>
     <script src="${pageContext.request.contextPath}/resources/static/js/jquery-3.2.1.min.js"></script>
     <script src="${pageContext.request.contextPath}/resources/static/js/ol3-layerswitcher.js"></script>
-    <style>
-        .ol-popup {
-            position: absolute;
-            background-color: white;
-            -webkit-filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.2));
-            filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.2));
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #cccccc;
-            bottom: 12px;
-            left: -50px;
-            min-width: 280px;
-        }
-
-        .ol-popup:after, .ol-popup:before {
-            top: 100%;
-            border: solid transparent;
-            content: "";
-            height: 0;
-            width: 0;
-            position: absolute;
-            pointer-events: none;
-        }
-
-        .ol-popup:after {
-            border-top-color: white;
-            border-width: 10px;
-            left: 48px;
-            margin-left: -10px;
-        }
-
-        .ol-popup:before {
-            border-top-color: #cccccc;
-            border-width: 11px;
-            left: 48px;
-            margin-left: -11px;
-        }
-
-        .ol-popup-closer {
-            text-decoration: none;
-            position: absolute;
-            top: 2px;
-            right: 8px;
-        }
-
-        .ol-popup-closer:after {
-            content: "x";
-        }
-    </style>
 </head>
 <body>
-<div id="map" class="map"></div>
-<div id="info" class="row" style="color:white;position: absolute;top: 20px;left: 200px;background-color: #7b98bc;">
-    <div class="form-inline">
-        <span style="margin-left: 10px;">Press ctrl to select range: </span>
-        <label class="checkbox">
-            <input type="checkbox" id="inlineCheckbox1" value="road" name="tables"> Road
-        </label>
-        <label class="checkbox">
-            <input type="checkbox" id="inlineCheckbox2" name="tables" value="building"> Building
-        </label>
-        <label class="checkbox">
-            <input type="checkbox" id="inlineCheckbox3" value="wood" name="tables"> Wood
-        </label>
-        <label class="checkbox">
-            <input type="checkbox" id="inlineCheckbox4" name="tables" value="water"> Water
-        </label>
+
+<div id="wrapper">
+    <!-- Sidebar -->
+    <div id="sidebar-wrapper">
+        <ul class="sidebar-nav">
+            <li>
+                <h3>OSM data:</h3>
+            </li>
+            <li>
+                <div id="osm_res"></div>
+            </li>
+            <li>
+                <h3>KR data:</h3>
+            </li>
+            <li>
+                <div id="kr_res"></div>
+            </li>
+            <li>
+                <a href="#" id="bar_close">Close bar</a>
+            </li>
+
+        </ul>
     </div>
-</div>
-<div id="popup" class="ol-popup">
-    <a href="#" id="popup-closer" class="ol-popup-closer"></a>
-    <div id="popup-content"></div>
+    <!-- /#sidebar-wrapper -->
+
+    <!-- Page Content -->
+    <div id="page-content-wrapper">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div id="map"></div>
+                    <div id="info" class="row">
+                        <div class="form-inline">
+                            <span style="margin-left: 10px;">WMS: </span>
+                            <label class="checkbox">
+                                <input type="checkbox" id="inlineCheckbox1" value="road" name="tables"> Road OSM
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="inlineCheckbox2" name="tables" value="building"> Building OSM
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="inlineCheckbox3" value="road_kr" name="tables"> Road KR
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="inlineCheckbox4" name="tables" value="building_kr"> Building
+                                KR
+                            </label>
+                        </div>
+                    </div>
+                    <div id="popup" class="ol-popup">
+                        <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+                        <div id="popup-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /#page-content-wrapper -->
+
 </div>
 <script>
 
@@ -118,7 +109,7 @@
 
     var wmsLayer = new ol.layer.Image({
         title: 'WMS',
-        visible: false,
+        visible: true,
         source: wmsSource
     });
 
@@ -136,57 +127,27 @@
     })
 
 
-    var busanLonLat = [76.879196, 43.275867];
-    var busantonWebMercator = ol.proj.fromLonLat(busanLonLat);
+    /* var busanLonLat = [];
+     var busantonWebMercator = ol.proj.fromLonLat(busanLonLat);*/
 
     var view = new ol.View({
-        center: busantonWebMercator,
-        zoom: 12
+        center: [14129544.82809238, 4517183.023123029],
+        zoom: 15
     });
 
     var vectorSource = new ol.source.Vector({});
 
-    /*var styles = {
-     'CROSSES': new ol.style.Style({
-     stroke: new ol.style.Stroke({
-     color: 'red',
-     lineDash: [4],
-     width: 3
-     })
-     }),
-     'WITHIN': new ol.style.Style({
-     stroke: new ol.style.Stroke({
-     color: 'green',
-     lineDash: [4],
-     width: 3
-     })
-     })
-     };*/
     var styles = {
-        'building': new ol.style.Style({
+        'osm': new ol.style.Style({
             stroke: new ol.style.Stroke({
                 color: 'red',
                 lineDash: [4],
                 width: 3
             })
         }),
-        'road': new ol.style.Style({
+        'kr': new ol.style.Style({
             stroke: new ol.style.Stroke({
                 color: 'black',
-                lineDash: [4],
-                width: 3
-            })
-        }),
-        'water': new ol.style.Style({
-            stroke: new ol.style.Stroke({
-                color: 'blue',
-                lineDash: [4],
-                width: 3
-            })
-        }),
-        'wood': new ol.style.Style({
-            stroke: new ol.style.Stroke({
-                color: 'green',
                 lineDash: [4],
                 width: 3
             })
@@ -194,7 +155,7 @@
     };
 
     var styleFunction = function (feature) {
-        return styles[feature.getProperties().tablename];
+        return styles[feature.getProperties().source];
     };
 
     var vectorLayer = new ol.layer.Vector({
@@ -243,23 +204,12 @@
     dragBox.on('boxend', function () {
         var extent = dragBox.getGeometry().getExtent();
         vectorSource.clear();
-        /*addCrossesData(extent);
-         addWithinData(extent);*/
         addIntersectsDataData(extent);
     });
 
     function addIntersectsDataData(extent) {
 
-        var tables = [];
-
-        $("input:checkbox[name=tables]:checked").each(function () {
-            tables.push($(this).val());
-        });
-
-        if (tables.length == 0) {
-            alert("Select at least one feature!");
-            return;
-        }
+        var tables = ["building", "road", "road_kr", "building_kr"];
 
         $.get(
             "intersects",
@@ -271,37 +221,14 @@
                 tables: tables
             },
             function (data) {
-                vectorSource.addFeatures((new ol.format.GeoJSON()).readFeatures(data))
-            }
-        );
-    }
+                var features = (new ol.format.GeoJSON()).readFeatures(data);
+                vectorSource.addFeatures(features);
 
-    function addCrossesData(extent) {
-        $.get(
-            "crosses",
-            {
-                xMin: extent[0],
-                yMin: extent[1],
-                xMax: extent[2],
-                yMax: extent[3],
-            },
-            function (data) {
-                vectorSource.addFeatures((new ol.format.GeoJSON()).readFeatures(data))
-            }
-        );
-    }
+                features.forEach(function (feature) {
+                    console.log("ID: " + feature.getId() + " Source: " + feature.getProperties().source + " Topology type: " + feature.getProperties().topology_type + " Name: " + feature.getProperties().name);
+                });
 
-    function addWithinData(extent) {
-        $.get(
-            "within",
-            {
-                xMin: extent[0],
-                yMin: extent[1],
-                xMax: extent[2],
-                yMax: extent[3],
-            },
-            function (data) {
-                vectorSource.addFeatures((new ol.format.GeoJSON()).readFeatures(data))
+                $("#wrapper").toggleClass("toggled");
             }
         );
     }
@@ -312,7 +239,7 @@
             return feature;
         });
         console.log(feature);
-        content.innerHTML = 'Type: '+feature.getProperties().tablename+' </br> Description:' + feature.getProperties().name;
+        content.innerHTML = 'Source: ' + feature.getProperties().source + ' </br> Description:' + feature.getProperties().name;
         overlay.setPosition(coordinate);
     };
 
@@ -320,15 +247,25 @@
         displayFeatureInfo(evt.pixel, evt.coordinate);
     });
 
-    $("input:checkbox[name=tables]").change(function() {
+    $("input:checkbox[name=tables]").change(function () {
         var tables = [];
         $("input:checkbox[name=tables]:checked").each(function () {
-            tables.push("osm_demo:"+$(this).val());
+            tables.push("osm_demo:" + $(this).val());
         });
+        if (tables.length == 0) {
+            wmsLayer.setVisible(false);
+        } else {
+            wmsLayer.setVisible(true);
+        }
         var params = wmsSource.getParams();
         params.LAYERS = tables.join();
         wmsSource.updateParams(params);
         wmsSource.refresh();
+    });
+
+    $("#bar_close").click(function (e) {
+        e.preventDefault();
+        $("#wrapper").toggleClass("toggled");
     });
 
 </script>

@@ -18,24 +18,10 @@ public class SpatialController {
     @Autowired
     SpatialService spatialService;
 
-    @RequestMapping("/within")
-    public
-    @ResponseBody
-    FeatureCollection getWithin(Envelope envelope) {
-        return new FeatureCollection(spatialService.getWithin(envelope));
-    }
-
-    @RequestMapping("/crosses")
-    public
-    @ResponseBody
-    FeatureCollection getCrosses(Envelope envelope) {
-        return new FeatureCollection(spatialService.getCrosses(envelope));
-    }
-
     @RequestMapping("/intersects")
     public
     @ResponseBody
     FeatureCollection getIntersects(Envelope envelope, @RequestParam(value = "tables[]") String[] tables) {
-        return new FeatureCollection(spatialService.getintersects(envelope, tables));
+        return new FeatureCollection(spatialService.getintersectsWithTopologyType(envelope, tables));
     }
 }

@@ -7,6 +7,7 @@ import io.github.stemlab.service.SpatialService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -18,15 +19,21 @@ public class SpatialServiceImpl implements SpatialService {
     @Autowired
     SpatialDao spatialDao;
 
-    public List<Feature> getWithin(Envelope envelope) {
-        return spatialDao.getWithin(envelope);
-    }
-
-    public List<Feature> getCrosses(Envelope envelope) {
-        return spatialDao.getCrosses(envelope);
-    }
-
-    public List<Feature> getintersects(Envelope envelope, String... tables) {
-        return spatialDao.getintersects(envelope,tables);
+    public List<Feature> getintersectsWithTopologyType(Envelope envelope, String... tables) {
+        List<Feature> features = new LinkedList<Feature>();
+        for (String table : tables) {
+            if (table.equals("building")) {
+                features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope, "building"));
+            } else if (table.equals("road")) {
+                features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope, "road"));
+            } else if (table.equals("road_kr")) {
+                features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope, "road_kr"));
+            } else if (table.equals("building_kr")) {
+                features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope, "building_kr"));
+            } else {
+                System.out.println("undefined table");
+            }
+        }
+        return features;
     }
 }
