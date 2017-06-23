@@ -19,6 +19,7 @@ public class KRFeatureMapper implements RowMapper {
     private static final String ID = "gid";
     private static final String TOPOLOGY_TYPE = "topology_type";
     private static final String GEOMETRY_FUNCTION_ST_ASGEOJSON = "st_asgeojson";
+    private static final String TABLENAME = "tablename";
 
     public Feature mapRow(ResultSet resultSet, int i) throws SQLException {
         Feature feature = new Feature();
@@ -27,6 +28,7 @@ public class KRFeatureMapper implements RowMapper {
         HashMap<String, String> properties = new HashMap<String, String>();
         properties.put(TOPOLOGY_TYPE, resultSet.getString(TOPOLOGY_TYPE));
         properties.put("name", resultSet.getString("name"));
+        properties.put(TABLENAME, resultSet.getString(TABLENAME));
         properties.put("source", "kr");
         feature.setProperties(properties);
         return feature;

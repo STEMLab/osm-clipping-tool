@@ -18,6 +18,7 @@ public class OSMFeatureMapper implements RowMapper {
     private static final String ID = "id";
     private static final String TOPOLOGY_TYPE = "topology_type";
     private static final String GEOMETRY_FUNCTION_ST_ASGEOJSON = "st_asgeojson";
+    private static final String TABLENAME = "tablename";
 
     public Feature mapRow(ResultSet resultSet, int i) throws SQLException {
         Feature feature = new Feature();
@@ -26,6 +27,7 @@ public class OSMFeatureMapper implements RowMapper {
         HashMap<String, String> properties = new HashMap<String, String>();
         properties.put(TOPOLOGY_TYPE, resultSet.getString(TOPOLOGY_TYPE));
         properties.put("name", resultSet.getString("name"));
+        properties.put(TABLENAME, resultSet.getString(TABLENAME));
         properties.put("source", "osm");
         feature.setProperties(properties);
         return feature;

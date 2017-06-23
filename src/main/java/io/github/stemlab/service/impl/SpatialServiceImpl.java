@@ -36,4 +36,50 @@ public class SpatialServiceImpl implements SpatialService {
         }
         return features;
     }
+
+    public void addOsmToDataset(Feature feature) {
+        if(feature.getProperties().containsKey("tablename")){
+            if (feature.getProperties().get("tablename").equals("building")){
+                spatialDao.addToKR("building","building_kr",feature.getId());
+            } else if (feature.getProperties().get("tablename").equals("road")){
+                spatialDao.addToKR("road","road_kr",feature.getId());
+            }else{
+                System.out.println("undefined table");
+            }
+        }
+
+    }
+
+    public Double getHausdorffDistance(Feature[] features) throws Exception {
+        if (features.length==2){
+            if(features[0].getProperties().containsKey("tablename")){
+                if (features[0].getProperties().get("tablename").equals("road")){
+                    spatialDao.getHausdorffDistance(features[1].getId(),features[0].getId());
+                } else {
+                    spatialDao.getHausdorffDistance(features[0].getId(),features[1].getId());
+                }
+            }else{
+                throw new Exception("tablename not exist");
+            }
+        }else{
+            throw new Exception("not two features");
+        }
+        return null;
+    }
+
+    public Double getSurfaceDistance(Feature[] features) throws Exception {
+        if (features.length==2){
+            if(features[0].getProperties().containsKey("tablename") && features[0].getProperties().containsKey("tablename")){
+                if (features[0].getProperties().get("tablename").equals("building")){
+                    return spatialDao.getSurfaceDistance(features[1].getId(),features[0].getId());
+                } else {
+                    return spatialDao.getSurfaceDistance(features[0].getId(),features[1].getId());
+                }
+            }else{
+                throw new Exception("tablename not exist");
+            }
+        }else{
+            throw new Exception("not two features");
+        }
+    }
 }

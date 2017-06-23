@@ -19,20 +19,20 @@
 <div id="wrapper">
     <!-- Sidebar -->
     <div id="sidebar-wrapper">
-        <ul class="sidebar-nav">
+        <ul class="sidebar-nav ">
             <li>
-                <h3>OSM data:</h3>
-            </li>
-            <li>
-                <div id="osm_res"></div>
-            </li>
-            <li>
-                <h3>KR data:</h3>
+                <h3>KR:</h3>
             </li>
             <li>
                 <div id="kr_res"></div>
             </li>
             <li>
+            <li>
+                <h3>OSM:</h3>
+            </li>
+            <li>
+                <div id="osm_res"></div>
+            </li>
                 <a href="#" id="bar_close">Close bar</a>
             </li>
 
@@ -83,7 +83,7 @@
     var container = document.getElementById('popup');
     var content = document.getElementById('popup-content');
     var closer = document.getElementById('popup-closer');
-
+    var lastExtent;
 
     /**
      * Create an overlay to anchor the popup to the map.
@@ -136,6 +136,7 @@
     });
 
     var vectorSource = new ol.source.Vector({});
+    var selectedVectorSource = new ol.source.Vector({});
 
     var styles = {
         'osm': new ol.style.Style({
@@ -158,10 +159,28 @@
         return styles[feature.getProperties().source];
     };
 
+    var selectedStyleFunction = function (feature) {
+        return new ol.style.Style({
+            stroke: new ol.style.Stroke({
+                color: 'blue',
+                width: 5
+            }),
+            fill: new ol.style.Fill({
+                color: 'blue'
+            })
+        })
+    };
+
     var vectorLayer = new ol.layer.Vector({
         title: 'Range query results',
         source: vectorSource,
         style: styleFunction
+    });
+
+    var selectedVectorLayer = new ol.layer.Vector({
+        title: 'Selected layer',
+        source: selectedVectorSource,
+        style: selectedStyleFunction
     });
 
     var map = new ol.Map({
@@ -178,7 +197,7 @@
                     wmsLayer
                 ]
             }),
-            vectorLayer
+            vectorLayer, selectedVectorLayer
         ],
         overlays: [overlay],
         target: 'map',
@@ -205,9 +224,11 @@
         var extent = dragBox.getGeometry().getExtent();
         vectorSource.clear();
         addIntersectsDataData(extent);
+        lastExtent = extent;
     });
 
     function addIntersectsDataData(extent) {
+
 
         var tables = ["building", "road", "road_kr", "building_kr"];
 
@@ -224,14 +245,79 @@
                 var features = (new ol.format.GeoJSON()).readFeatures(data);
                 vectorSource.addFeatures(features);
 
+                var osmHtml = '<table id="osm_table" class="table table-condensed">';
+                var krHtml = '<table id="kr_table" class="table table-condensed">';
+                osmHtml += '<tr><th class="col-md-3">ID</th><th class="col-md-3">Topology</th><th class="col-md-4">Name</th><th class="col-md-2">Add to KR</th></th>';
+                krHtml += '<tr><th class="col-md-3">ID</th><th class="col-md-3">Topology</th><th class="col-md-6">Name</th></th>';
                 features.forEach(function (feature) {
-                    console.log("ID: " + feature.getId() + " Source: " + feature.getProperties().source + " Topology type: " + feature.getProperties().topology_type + " Name: " + feature.getProperties().name);
+                    if(feature.getProperties().source=="osm"){
+                        osmHtml += '<tr data-feature-id="'+feature.getId()+'">'+'<td class="col-md-3">' + feature.getId() + '</td>'+'<td class="col-md-3">' +  feature.getProperties().topology_type + '</td>'+'<td class="col-md-4">'+  feature.getProperties().name + '</td>'+'<td class="col-md-2">'+ '<a href="#" class="addOsm" data-feature-id="'+feature.getId()+'"> +add</a>'+ '</td>'+'</tr>';
+                    }else if(feature.getProperties().source=="kr"){
+                        krHtml += '<tr data-feature-id="'+feature.getId()+'">'+'<td class="col-md-3">' + feature.getId() + '</td>'+'<td class="col-md-3">' +  feature.getProperties().topology_type + '</td>'+'<td class="col-md-6">'+  feature.getProperties().name + '</td>'+'</tr>';
+                    }else{
+                        console.log("ID: " + feature.getId() + " Source: " + feature.getProperties().source + " Topology type: " + feature.getProperties().topology_type + " Name: " + feature.getProperties().name);
+                    }
+                });
+                osmHtml += '</table>';
+                krHtml += '</table>';
+                $("#osm_res").empty();
+                $("#kr_res").empty();
+                $("#osm_res").append(osmHtml);
+                $("#kr_res").append(krHtml);
+
+                $('#osm_table').on('click', 'tbody tr', function(event) {
+                    $(this).addClass('highlight').siblings().removeClass('highlight');
+                    $(this).css('color','white').siblings().css('color','#7b98bc');
+
+                     unSelect("kr_table");
+                    var feature = vectorSource.getFeatureById($(this).attr("data-feature-id"));
+                    map.getView().fit(feature.getGeometry(), map.getSize());
+                    console.log();
+                    selectedVectorSource.clear();
+                    selectedVectorSource.addFeature(feature);
                 });
 
-                $("#wrapper").toggleClass("toggled");
+                $('#kr_table').on('click', 'tbody tr', function(event) {
+                    $(this).addClass('highlight').siblings().removeClass('highlight');
+                    $(this).css('color','white').siblings().css('color','#7b98bc');
+
+                    unSelect("osm_table");
+
+                    var feature = vectorSource.getFeatureById($(this).attr("data-feature-id"));
+                    map.getView().fit(feature.getGeometry(), map.getSize());
+                    console.log();
+                    selectedVectorSource.clear();
+                    selectedVectorSource.addFeature(feature);
+                });
+
+                $(".addOsm").click(function(e) {
+                    e.preventDefault();
+                    var feature = vectorSource.getFeatureById($(this).attr("data-feature-id"));
+                    $.ajax({
+                        type: "POST",
+                        url: "${pageContext.request.contextPath}/addOsmToDataset",
+                        data: simpleStringify(feature),
+                        contentType: "application/json",
+                        async: false,
+                        success: function (respose) {
+                            console.log("Success adding");
+                            addIntersectsDataData(extent);
+                        }
+                    }).fail(function() {
+                        alert( "Error adding" );
+                    });
+                });
+
+                $("#wrapper").addClass("toggled");
             }
         );
     }
+
+    function unSelect(table){
+        $('#'+table+' > tbody  > tr').each(function() {$(this).removeClass('highlight'); $(this).css('color','#7b98bc');});
+    }
+
+
 
     var displayFeatureInfo = function (pixel, coordinate) {
 
@@ -239,11 +325,58 @@
             return feature;
         });
         console.log(feature);
-        content.innerHTML = 'Source: ' + feature.getProperties().source + ' </br> Description:' + feature.getProperties().name;
+        content.innerHTML = 'ID: ' + feature.getId() + ' </br> Description:' + feature.getProperties().name;
         overlay.setPosition(coordinate);
+
+        selectedVectorSource.addFeature(feature);
+        if(selectedVectorSource.getFeatures().length==2){
+            if(selectedVectorSource.getFeatures()[0].getGeometry().getType()==selectedVectorSource.getFeatures()[1].getGeometry().getType()){
+                if(selectedVectorSource.getFeatures()[0].getProperties().tablename!=selectedVectorSource.getFeatures()[1].getProperties().tablename){
+                   if(selectedVectorSource.getFeatures()[0].getProperties().tablename=='building' || selectedVectorSource.getFeatures()[0].getProperties().tablename=='building_kr'){
+                       getSurfaceDistance(selectedVectorSource.getFeatures()[0], selectedVectorSource.getFeatures()[1]);
+                   } else{
+                       getHausdorffDistance(selectedVectorSource.getFeatures()[0], selectedVectorSource.getFeatures()[1]);
+                   }
+                }
+            }else{
+                selectedVectorSource.clear();
+            }
+        }  if(selectedVectorSource.getFeatures().length>=3){
+            selectedVectorSource.clear();
+        }
     };
 
+    function getHausdorffDistance(one, two){
+        $.ajax({
+            type: "POST",
+            url: "${pageContext.request.contextPath}/hausdorffDistance",
+            data: simpleStringify(one,two),
+            contentType: "application/json",
+            async: false,
+            success: function (respose) {
+                console.log("Hausdorf distance" + respose);
+            }
+        }).fail(function() {
+            alert( "Error hausdorff" );
+        });
+    }
+    function getSurfaceDistance(one, two){
+        $.ajax({
+            type: "POST",
+            url: "${pageContext.request.contextPath}/surfaceDistance",
+            data: simpleStringify(one,two),
+            contentType: "application/json",
+            async: false,
+            success: function (respose) {
+                console.log("Surface distance" + respose);
+            }
+        }).fail(function() {
+            alert( "Error surfaceDistance" );
+        });
+    }
+
     map.on('click', function (evt) {
+        $("#wrapper").removeClass("toggled");
         displayFeatureInfo(evt.pixel, evt.coordinate);
     });
 
@@ -265,8 +398,26 @@
 
     $("#bar_close").click(function (e) {
         e.preventDefault();
-        $("#wrapper").toggleClass("toggled");
+        $("#wrapper").removeClass("toggled");
     });
+
+    $(document).keydown(function(event){
+        if(event.which=="17"){
+            $("#wrapper").removeClass("toggled");
+        }
+    });
+
+    function simpleStringify (feature){
+        var simpleObject = {id:feature.getId(), properties : {'tablename': feature.getProperties().tablename}};
+        return JSON.stringify(simpleObject); // returns cleaned up JSON
+    };
+
+    function simpleStringify (one, two){
+        var simpleObject = {id:one.getId(), properties : {'tablename': one.getProperties().tablename}};
+        var simpleObject1 = {id:two.getId(), properties : {'tablename': two.getProperties().tablename}};
+        var arr = [simpleObject,simpleObject1];
+        return JSON.stringify(arr); // returns cleaned up JSON
+    };
 
 </script>
 </body>

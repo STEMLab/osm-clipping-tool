@@ -10,4 +10,7 @@ import java.util.List;
  */
 public interface SpatialService {
     List<Feature> getintersectsWithTopologyType(Envelope envelope, String... tables);
+    void addOsmToDataset(Feature feature);
+    Double getHausdorffDistance(Feature[] features) throws Exception;
+    Double getSurfaceDistance(Feature[] features) throws Exception;
 }
