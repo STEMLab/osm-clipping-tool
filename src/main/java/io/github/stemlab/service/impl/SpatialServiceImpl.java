@@ -3,6 +3,7 @@ package io.github.stemlab.service.impl;
 import io.github.stemlab.dao.SpatialDao;
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
+import io.github.stemlab.exception.OSMToolException;
 import io.github.stemlab.service.SpatialService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -16,70 +17,172 @@ import java.util.List;
 @Service
 public class SpatialServiceImpl implements SpatialService {
 
+    public static String OSM_BUILDING_NAME = "building";
+    public static String KR_BUILDING_NAME = "building_kr";
+    public static String KR_ROAD_NAME = "road_kr";
+    public static String OSM_ROAD_NAME = "road";
+    private static String UNDEFINED_TABLE_EXCEPTION = "UNDEFINED TABLE:";
+    private static double MAX_SURFACE_DISTANCE = 0.0;
+    private static double MAX_HAUSDORFF_DISTANCE = 15.0;
+    private static String TABLE_NAME_PROPERTY = "tablename";
     @Autowired
     SpatialDao spatialDao;
+    List<Feature> OSMBuildingFeatures;
+    List<Feature> KRBuildingFeatures;
+    List<Feature> KRRoadFeatures;
+    List<Feature> OSMRoadFeatures;
 
-    public List<Feature> getintersectsWithTopologyType(Envelope envelope, String... tables) {
+    public List<Feature> getIntersectsWithTopology(Envelope envelope, String... tables) throws OSMToolException {
+
+
+        OSMBuildingFeatures = new LinkedList<Feature>();
+        KRBuildingFeatures = new LinkedList<Feature>();
+
+        KRRoadFeatures = new LinkedList<Feature>();
+        OSMRoadFeatures = new LinkedList<Feature>();
+
         List<Feature> features = new LinkedList<Feature>();
+
         for (String table : tables) {
-            if (table.equals("building")) {
-                features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope, "building"));
-            } else if (table.equals("road")) {
-                features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope, "road"));
-            } else if (table.equals("road_kr")) {
-                features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope, "road_kr"));
-            } else if (table.equals("building_kr")) {
-                features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope, "building_kr"));
+            if (table.equals(OSM_BUILDING_NAME)) {
+                OSMBuildingFeatures = spatialDao.getOSMIntersectsWithTopologyType(envelope, OSM_BUILDING_NAME);
+                features.addAll(OSMBuildingFeatures);
+            } else if (table.equals(OSM_ROAD_NAME)) {
+                OSMRoadFeatures = spatialDao.getOSMIntersectsWithTopologyType(envelope, OSM_ROAD_NAME);
+                features.addAll(OSMRoadFeatures);
+            } else if (table.equals(KR_ROAD_NAME)) {
+                KRRoadFeatures = spatialDao.getKRIntersectsWithTopologyType(envelope, KR_ROAD_NAME);
+                features.addAll(KRRoadFeatures);
+            } else if (table.equals(KR_BUILDING_NAME)) {
+                KRBuildingFeatures = spatialDao.getKRIntersectsWithTopologyType(envelope, KR_BUILDING_NAME);
+                features.addAll(KRBuildingFeatures);
             } else {
-                System.out.println("undefined table");
+                throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + table);
             }
         }
         return features;
     }
 
-    public void addOsmToDataset(Feature feature) {
-        if(feature.getProperties().containsKey("tablename")){
-            if (feature.getProperties().get("tablename").equals("building")){
-                spatialDao.addToKR("building","building_kr",feature.getId());
-            } else if (feature.getProperties().get("tablename").equals("road")){
-                spatialDao.addToKR("road","road_kr",feature.getId());
-            }else{
-                System.out.println("undefined table");
+    public List<Feature> getProcessedFeatures() throws OSMToolException {
+
+        List<Feature> list = new LinkedList<Feature>();
+
+        for (Feature feature : KRBuildingFeatures) {
+            double max = MAX_SURFACE_DISTANCE;
+            Feature chosenFeature = null;
+            for (Feature secondFeature : OSMBuildingFeatures) {
+                double distance = getSurfaceDistance(feature, secondFeature);
+                if (distance > max) {
+                    max = distance;
+                    chosenFeature = secondFeature;
+                }
+            }
+            if (chosenFeature != null) {
+                feature.addProperty("candidate", chosenFeature.getId().toString());
+                feature.addProperty("candidateDistance", getSurfaceDistance(feature, chosenFeature).toString());
+                list.add(feature);
             }
         }
 
-    }
-
-    public Double getHausdorffDistance(Feature[] features) throws Exception {
-        if (features.length==2){
-            if(features[0].getProperties().containsKey("tablename")){
-                if (features[0].getProperties().get("tablename").equals("road")){
-                    spatialDao.getHausdorffDistance(features[1].getId(),features[0].getId());
-                } else {
-                    spatialDao.getHausdorffDistance(features[0].getId(),features[1].getId());
+        for (Feature feature : KRRoadFeatures) {
+            double min = MAX_HAUSDORFF_DISTANCE;
+            Feature chosenFeature = null;
+            for (Feature secondFeature : OSMRoadFeatures) {
+                double distance = getHausdorffDistance(feature, secondFeature);
+                ;
+                if (distance < min) {
+                    min = distance;
+                    chosenFeature = secondFeature;
                 }
-            }else{
-                throw new Exception("tablename not exist");
             }
-        }else{
-            throw new Exception("not two features");
+            if (chosenFeature != null) {
+                feature.addProperty("candidate", chosenFeature.getId().toString());
+                feature.addProperty("candidateDistance", getHausdorffDistance(feature, chosenFeature).toString());
+                list.add(feature);
+            }
         }
-        return null;
+
+        return list;
     }
 
-    public Double getSurfaceDistance(Feature[] features) throws Exception {
-        if (features.length==2){
-            if(features[0].getProperties().containsKey("tablename") && features[0].getProperties().containsKey("tablename")){
-                if (features[0].getProperties().get("tablename").equals("building")){
-                    return spatialDao.getSurfaceDistance(features[1].getId(),features[0].getId());
+    public void addOsmToDataSet(Feature[] features) throws OSMToolException {
+        for (Feature feature : features) {
+            if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
+                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
+                    spatialDao.addToKR(OSM_BUILDING_NAME, KR_BUILDING_NAME, feature.getId());
+                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
+                    spatialDao.addToKR(OSM_ROAD_NAME, KR_ROAD_NAME, feature.getId());
                 } else {
-                    return spatialDao.getSurfaceDistance(features[0].getId(),features[1].getId());
+                    throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
                 }
-            }else{
-                throw new Exception("tablename not exist");
             }
-        }else{
-            throw new Exception("not two features");
+        }
+    }
+
+    public void replaceObjects(Feature[] features) throws OSMToolException {
+        Feature featureTo = features[0];
+        Feature featureFrom = features[1];
+        for (Feature feature : features) {
+            if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
+                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
+                    featureFrom = feature;
+                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_BUILDING_NAME)) {
+                    featureTo = feature;
+                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
+                    featureFrom = feature;
+                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_ROAD_NAME)) {
+                    featureTo = feature;
+                } else {
+                    throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
+                }
+            }
+        }
+        spatialDao.replaceObjects(featureTo.getProperties().get(TABLE_NAME_PROPERTY), featureFrom.getProperties().get(TABLE_NAME_PROPERTY), featureTo.getId(), featureFrom.getId());
+    }
+
+    public void deleteObjects(Feature[] features) throws OSMToolException {
+        for (Feature feature : features) {
+            if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
+                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_ROAD_NAME)) {
+                    spatialDao.deleteObjects(KR_ROAD_NAME, feature.getId());
+                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_BUILDING_NAME)) {
+                    spatialDao.deleteObjects(KR_BUILDING_NAME,feature.getId());
+                } else {
+                    throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
+                }
+            }
+        }
+    }
+
+    public Double getHausdorffDistance(Feature... features) throws OSMToolException {
+        if (features.length == 2) {
+            if (features[0].getProperties().containsKey(TABLE_NAME_PROPERTY) && features[1].getProperties().containsKey(TABLE_NAME_PROPERTY)) {
+                if (features[0].getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
+                    return spatialDao.getHausdorffDistance(features[1].getId(), features[0].getId());
+                } else {
+                    return spatialDao.getHausdorffDistance(features[0].getId(), features[1].getId());
+                }
+            } else {
+                throw new OSMToolException("NO KEY TABLENAME");
+            }
+        } else {
+            throw new OSMToolException("Features size more than 2: " + features.length);
+        }
+    }
+
+    public Double getSurfaceDistance(Feature... features) throws OSMToolException {
+        if (features.length == 2) {
+            if (features[0].getProperties().containsKey(TABLE_NAME_PROPERTY) && features[1].getProperties().containsKey(TABLE_NAME_PROPERTY)) {
+                if (features[0].getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
+                    return spatialDao.getSurfaceDistance(features[1].getId(), features[0].getId());
+                } else {
+                    return spatialDao.getSurfaceDistance(features[0].getId(), features[1].getId());
+                }
+            } else {
+                throw new OSMToolException("NO KEY TABLENAME");
+            }
+        } else {
+            throw new OSMToolException("Features size more than 2: " + features.length);
         }
     }
 }

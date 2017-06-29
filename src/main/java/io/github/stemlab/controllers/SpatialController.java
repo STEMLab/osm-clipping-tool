@@ -3,13 +3,12 @@ package io.github.stemlab.controllers;
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
 import io.github.stemlab.entity.FeatureCollection;
+import io.github.stemlab.exception.OSMToolException;
 import io.github.stemlab.service.SpatialService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Created by Azamat on 6/2/2017.
@@ -20,33 +19,50 @@ public class SpatialController {
     @Autowired
     SpatialService spatialService;
 
-    @RequestMapping("/intersects")
+    @RequestMapping(value = "/intersects", method = RequestMethod.GET)
     public
     @ResponseBody
-    FeatureCollection getIntersects(Envelope envelope, @RequestParam(value = "tables[]") String[] tables) {
-        return new FeatureCollection(spatialService.getintersectsWithTopologyType(envelope, tables));
+    FeatureCollection getIntersects(Envelope envelope, @RequestParam(value = "tables[]") String[] tables) throws Exception {
+        return new FeatureCollection(spatialService.getIntersectsWithTopology(envelope, tables));
     }
 
-    @RequestMapping("/addOsmToDataset")
+    @RequestMapping(value = "/intersectsProcess", method = RequestMethod.GET)
     public
     @ResponseBody
-    String addOsmToDataset(@RequestBody Feature feature) {
-        spatialService.addOsmToDataset(feature);
-        return "success";
+    FeatureCollection getIntersectsProcess() throws Exception {
+        return new FeatureCollection(spatialService.getProcessedFeatures());
     }
 
-    @RequestMapping("/hausdorffDistance")
-    public
-    @ResponseBody
-    Double hausdorffDistance(@RequestBody Feature[] feature) throws Exception {
-        return spatialService.getHausdorffDistance(feature);
+    @RequestMapping(value = "/addOsmToDataSet", method = RequestMethod.POST)
+    @ResponseStatus(value = HttpStatus.OK)
+    public void addOsmToDataSet(@RequestBody Feature[] features) throws OSMToolException {
+        spatialService.addOsmToDataSet(features);
     }
 
-    @RequestMapping("/surfaceDistance")
+    @RequestMapping(value = "/replace", method = RequestMethod.POST)
+    @ResponseStatus(value = HttpStatus.OK)
+    public void replaceInDataSet(@RequestBody Feature[] features) throws OSMToolException {
+        spatialService.replaceObjects(features);
+    }
+
+    @RequestMapping(value = "/delete", method = RequestMethod.POST)
+    @ResponseStatus(value = HttpStatus.OK)
+    public void deleteInDataSet(@RequestBody Feature[] features) throws OSMToolException {
+        spatialService.deleteObjects(features);
+    }
+
+    @RequestMapping(value = "/hausdorffDistance", method = RequestMethod.POST)
     public
     @ResponseBody
-    Double surfaceDistance(@RequestBody Feature[] feature) throws Exception {
-        return spatialService.getSurfaceDistance(feature);
+    Double hausdorffDistance(@RequestBody Feature[] features) throws Exception {
+        return spatialService.getHausdorffDistance(features);
+    }
+
+    @RequestMapping(value = "/surfaceDistance", method = RequestMethod.POST)
+    public
+    @ResponseBody
+    Double surfaceDistance(@RequestBody Feature[] features) throws Exception {
+        return spatialService.getSurfaceDistance(features);
     }
 
 }

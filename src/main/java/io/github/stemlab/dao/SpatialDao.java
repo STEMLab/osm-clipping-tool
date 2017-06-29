@@ -19,4 +19,8 @@ public interface SpatialDao {
     Double getHausdorffDistance(Long krID, Long osmID);
 
     Double getSurfaceDistance(Long krID, Long osmID);
+
+    void replaceObjects(String tableTo, String tableFrom, Long idTo, Long idFrom);
+
+    void deleteObjects(String table, Long id);
 }

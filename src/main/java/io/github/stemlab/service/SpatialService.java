@@ -2,6 +2,7 @@ package io.github.stemlab.service;
 
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
+import io.github.stemlab.exception.OSMToolException;
 
 import java.util.List;
 
@@ -9,8 +10,17 @@ import java.util.List;
  * Created by Azamat on 6/2/2017.
  */
 public interface SpatialService {
-    List<Feature> getintersectsWithTopologyType(Envelope envelope, String... tables);
-    void addOsmToDataset(Feature feature);
-    Double getHausdorffDistance(Feature[] features) throws Exception;
-    Double getSurfaceDistance(Feature[] features) throws Exception;
+    List<Feature> getIntersectsWithTopology(Envelope envelope, String... tables) throws OSMToolException;
+
+    void addOsmToDataSet(Feature[] features) throws OSMToolException;
+
+    void replaceObjects(Feature[] features) throws OSMToolException;
+
+    void deleteObjects(Feature[] features) throws OSMToolException;
+
+    Double getHausdorffDistance(Feature[] features) throws OSMToolException;
+
+    Double getSurfaceDistance(Feature[] features) throws OSMToolException;
+
+    List<Feature> getProcessedFeatures() throws OSMToolException;
 }
