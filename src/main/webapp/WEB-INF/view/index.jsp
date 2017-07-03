@@ -106,25 +106,10 @@
 
     var vectorSource = new ol.source.Vector({});
 
-    var styles = {
-        'osm': new ol.style.Style({
-            stroke: new ol.style.Stroke({
-                color: 'red',
-                lineDash: [4],
-                width: 3
-            })
-        }),
-        'kr': new ol.style.Style({
-            stroke: new ol.style.Stroke({
-                color: 'black',
-                lineDash: [4],
-                width: 3
-            })
-        })
-    };
+
 
     var styleFunction = function (feature) {
-        return styles[feature.getProperties().source];
+        return getStyle(feature);
     };
     var vectorLayer = new ol.layer.Vector({
         title: 'Range query results',
@@ -151,6 +136,60 @@
         target: 'map',
         view: view
     });
+
+    function getStyle(feature) {
+
+        if(feature.getProperties().source=='osm'){
+            return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'red',
+                    lineDash: [4],
+                    width: 3
+                }),
+                text: new ol.style.Text({
+                    font: '12px Calibri,sans-serif',
+                    fill: new ol.style.Fill({ color: '#000' }),
+                    stroke: new ol.style.Stroke({
+                        color: 'red', width: 2
+                    }),
+                    // get the text from the feature - `this` is ol.Feature
+                    // and show only under certain resolution
+                    text: getText(feature)
+                })
+            })
+         }else if(feature.getProperties().source=='kr'){
+            return new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'black',
+                    lineDash: [4],
+                    width: 3
+                }),
+                text: new ol.style.Text({
+                    font: '12px Calibri,sans-serif',
+                    fill: new ol.style.Fill({ color: '#000' }),
+                    stroke: new ol.style.Stroke({
+                        color: 'black', width: 2
+                    }),
+                    // get the text from the feature - `this` is ol.Feature
+                    // and show only under certain resolution
+                    text: getText(feature)
+                })
+            })
+        }
+    }
+
+    function getText(feature){
+
+        if (map.getView().getZoom() > 18 && map.getView().getZoom() <= 20){
+            return (feature.getProperties().source).toUpperCase()
+        }else if(map.getView().getZoom() > 20){
+            return String(feature.getId());
+        }
+        else{
+            return "";
+        }
+    }
+
 
     // a normal select interaction to handle click
     var select = new ol.interaction.Select({});

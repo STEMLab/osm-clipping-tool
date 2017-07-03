@@ -8,6 +8,8 @@ import io.github.stemlab.service.SpatialService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -65,7 +67,8 @@ public class SpatialServiceImpl implements SpatialService {
 
     public List<Feature> getProcessedFeatures() throws OSMToolException {
 
-        List<Feature> list = new LinkedList<Feature>();
+        List<Feature> listSurface = new LinkedList<Feature>();
+        List<Feature> listLine = new LinkedList<Feature>();
 
         for (Feature feature : KRBuildingFeatures) {
             double max = MAX_SURFACE_DISTANCE;
@@ -80,9 +83,13 @@ public class SpatialServiceImpl implements SpatialService {
             if (chosenFeature != null) {
                 feature.addProperty("candidate", chosenFeature.getId().toString());
                 feature.addProperty("candidateDistance", getSurfaceDistance(feature, chosenFeature).toString());
-                list.add(feature);
+                listSurface.add(feature);
             }
         }
+
+
+        Comparator<Feature> matchDistanceComparator = (o1, o2)->o1.getProperties().get("candidateDistance").compareTo(o2.getProperties().get("candidateDistance"));
+        listSurface.sort(matchDistanceComparator.reversed());
 
         for (Feature feature : KRRoadFeatures) {
             double min = MAX_HAUSDORFF_DISTANCE;
@@ -98,9 +105,15 @@ public class SpatialServiceImpl implements SpatialService {
             if (chosenFeature != null) {
                 feature.addProperty("candidate", chosenFeature.getId().toString());
                 feature.addProperty("candidateDistance", getHausdorffDistance(feature, chosenFeature).toString());
-                list.add(feature);
+                listLine.add(feature);
             }
         }
+
+        listLine.sort(matchDistanceComparator);
+
+        List<Feature> list = new LinkedList<Feature>();
+        list.addAll(listSurface);
+        list.addAll(listLine);
 
         return list;
     }
