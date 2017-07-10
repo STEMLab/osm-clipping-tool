@@ -8,7 +8,6 @@ import io.github.stemlab.service.SpatialService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -88,8 +87,8 @@ public class SpatialServiceImpl implements SpatialService {
         }
 
 
-        Comparator<Feature> matchDistanceComparator = (o1, o2)->o1.getProperties().get("candidateDistance").compareTo(o2.getProperties().get("candidateDistance"));
-        listSurface.sort(matchDistanceComparator.reversed());
+        Comparator<Feature> matchDistanceComparator = Comparator.comparingDouble(o -> Double.parseDouble(o.getProperties().get("candidateDistance")));
+            listSurface.sort(matchDistanceComparator.reversed());
 
         for (Feature feature : KRRoadFeatures) {
             double min = MAX_HAUSDORFF_DISTANCE;
@@ -118,13 +117,13 @@ public class SpatialServiceImpl implements SpatialService {
         return list;
     }
 
-    public void addOsmToDataSet(Feature[] features) throws OSMToolException {
+    public void addToOsmDataSet(Feature[] features) throws OSMToolException {
         for (Feature feature : features) {
             if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
-                    spatialDao.addToKR(OSM_BUILDING_NAME, KR_BUILDING_NAME, feature.getId());
-                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
-                    spatialDao.addToKR(OSM_ROAD_NAME, KR_ROAD_NAME, feature.getId());
+                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_BUILDING_NAME)) {
+                    spatialDao.addToOSM(KR_BUILDING_NAME, OSM_BUILDING_NAME, feature.getId());
+                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_ROAD_NAME)) {
+                    spatialDao.addToOSM(KR_ROAD_NAME, OSM_ROAD_NAME, feature.getId());
                 } else {
                     throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
                 }
@@ -137,13 +136,13 @@ public class SpatialServiceImpl implements SpatialService {
         Feature featureFrom = features[1];
         for (Feature feature : features) {
             if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
+                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_BUILDING_NAME)) {
                     featureFrom = feature;
-                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_BUILDING_NAME)) {
+                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
                     featureTo = feature;
-                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
-                    featureFrom = feature;
                 } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_ROAD_NAME)) {
+                    featureFrom = feature;
+                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
                     featureTo = feature;
                 } else {
                     throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
@@ -156,10 +155,10 @@ public class SpatialServiceImpl implements SpatialService {
     public void deleteObjects(Feature[] features) throws OSMToolException {
         for (Feature feature : features) {
             if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_ROAD_NAME)) {
-                    spatialDao.deleteObjects(KR_ROAD_NAME, feature.getId());
-                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_BUILDING_NAME)) {
-                    spatialDao.deleteObjects(KR_BUILDING_NAME,feature.getId());
+                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
+                    spatialDao.deleteObjects(OSM_ROAD_NAME, feature.getId());
+                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
+                    spatialDao.deleteObjects(OSM_BUILDING_NAME,feature.getId());
                 } else {
                     throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
                 }

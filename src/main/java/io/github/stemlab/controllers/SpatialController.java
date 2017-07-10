@@ -33,10 +33,10 @@ public class SpatialController {
         return new FeatureCollection(spatialService.getProcessedFeatures());
     }
 
-    @RequestMapping(value = "/addOsmToDataSet", method = RequestMethod.POST)
+    @RequestMapping(value = "/addToOsmDataSet", method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.OK)
     public void addOsmToDataSet(@RequestBody Feature[] features) throws OSMToolException {
-        spatialService.addOsmToDataSet(features);
+        spatialService.addToOsmDataSet(features);
     }
 
     @RequestMapping(value = "/replace", method = RequestMethod.POST)

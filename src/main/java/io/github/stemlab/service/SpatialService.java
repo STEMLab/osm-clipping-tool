@@ -12,7 +12,7 @@ import java.util.List;
 public interface SpatialService {
     List<Feature> getIntersectsWithTopology(Envelope envelope, String... tables) throws OSMToolException;
 
-    void addOsmToDataSet(Feature[] features) throws OSMToolException;
+    void addToOsmDataSet(Feature[] features) throws OSMToolException;
 
     void replaceObjects(Feature[] features) throws OSMToolException;
 

@@ -38,7 +38,7 @@ public class SpatialDaoImpl implements SpatialDao {
         final String query = "select " + OSM_ID + ", " + NAME + ", '" + table + "' as tablename, st_asgeojson(" + GEOM + "), case when (ST_Within(" + GEOM + ",ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "'))) THEN 'crosses'\n" +
                 "      when (ST_Crosses(" + GEOM + ",ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "'))) THEN 'within' " +
                 "when (ST_Overlaps(" + GEOM + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "'),5179))) THEN 'overlaps' END AS topology_type\n" +
-                " from " + OSM_SCHEMA_NAME + "." + table + " where added_to_kr = FALSE and \n" +
+                " from " + OSM_SCHEMA_NAME + "." + table + " where is_del = FALSE AND \n" +
                 "ST_Intersects(" + GEOM + ",ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "'));";
         return jdbcTemplate.query(query, new Object[]{envelope.getxMin(), envelope.getyMin(), envelope.getxMax(), envelope.getyMax(),
                 envelope.getxMin(), envelope.getyMin(), envelope.getxMax(), envelope.getyMax(), envelope.getxMin(), envelope.getyMin(), envelope.getxMax(), envelope.getyMax(),
@@ -49,24 +49,24 @@ public class SpatialDaoImpl implements SpatialDao {
         final String query = "select " + KR_ID + ", " + NAME + ", '" + table + "' as tablename, st_asgeojson(ST_Transform (" + GEOM + ", " + SRID + ")), case when (ST_Within(" + GEOM + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "'),5179))) THEN 'crosses'\n" +
                 "      when (ST_Crosses(" + GEOM + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "'),5179))) THEN 'within' " +
                 "when (ST_Overlaps(" + GEOM + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "'),5179))) THEN 'overlaps' END AS topology_type\n" +
-                " from " + KR_SCHEMA_NAME + "." + table + " where is_del = FALSE AND\n" +
+                " from " + KR_SCHEMA_NAME + "." + table + " where added_to_osm = FALSE AND \n" +
                 "ST_Intersects(" + GEOM + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "'),5179));";
         return jdbcTemplate.query(query, new Object[]{envelope.getxMin(), envelope.getyMin(), envelope.getxMax(), envelope.getyMax(),
                 envelope.getxMin(), envelope.getyMin(), envelope.getxMax(), envelope.getyMax(), envelope.getxMin(), envelope.getyMin(), envelope.getxMax(), envelope.getyMax(),
                 envelope.getxMin(), envelope.getyMin(), envelope.getxMax(), envelope.getyMax()}, new KRFeatureMapper());
     }
 
-    public void addToKR(String from, String dest, Long id) {
-        final String query = "insert into " + KR_SCHEMA_NAME + "." + dest + "(name, geom, osm)\n" +
-                "select name,ST_Multi(ST_Transform(geom,5179)),true from " + OSM_SCHEMA_NAME + "." + from + " where " + OSM_ID + "= ?;";
+    public void addToOSM(String from, String dest, Long id) {
+        final String query = "insert into " + OSM_SCHEMA_NAME + "." + dest + "(name, geom, kr)\n" +
+                "select name,(ST_Transform(geom,3857)),true from " + KR_SCHEMA_NAME + "." + from + " where " + KR_ID + "= ?;";
         jdbcTemplate.update(query, id);
         if (jdbcTemplate.update(query, id) > 0) {
-            setAddedToKR(from, id);
+            setAddedToOSM(from, id);
         }
     }
 
-    public void setAddedToKR(String table, Long id) {
-        final String query = "update " + OSM_SCHEMA_NAME + "." + table + " set added_to_kr = TRUE where " + OSM_ID + " = ?;";
+    public void setAddedToOSM(String table, Long id) {
+        final String query = "update " + KR_SCHEMA_NAME + "." + table + " set added_to_osm = TRUE where " + KR_ID + " = ?;";
         jdbcTemplate.update(query, id);
     }
 
@@ -82,14 +82,14 @@ public class SpatialDaoImpl implements SpatialDao {
     }
 
     public void replaceObjects(String tableTo, String tableFrom, Long idTo, Long idFrom) {
-        final String query = "update " + KR_SCHEMA_NAME + "." + tableTo + " set " + GEOM + " = ST_Multi(ST_Transform((select " + GEOM + " from " + OSM_SCHEMA_NAME + "." + tableFrom + " where " + OSM_ID + " = ?),5179)) where " + KR_ID + " = ?";
+        final String query = "update " + OSM_SCHEMA_NAME + "." + tableTo + " set " + GEOM + " = (ST_Transform((select " + GEOM + " from " + KR_SCHEMA_NAME + "." + tableFrom + " where " + KR_ID + " = ?),3857)) where " + OSM_ID + " = ?";
         if (jdbcTemplate.update(query, idFrom, idTo) > 0) {
-            setAddedToKR(tableFrom, idFrom);
+            setAddedToOSM(tableFrom, idFrom);
         }
     }
 
     public void deleteObjects(String table, Long id) {
-        final String query = "UPDATE " + KR_SCHEMA_NAME + "." + table + " SET is_del = true where " + KR_ID + " = ?";
+        final String query = "UPDATE " + OSM_SCHEMA_NAME + "." + table + " SET is_del = true where " + OSM_ID + " = ?";
         jdbcTemplate.update(query, id);
     }
 }

@@ -83,14 +83,14 @@
     var osm = new ol.layer.Tile({
         title: 'OpenStreetMap',
         type: 'base',
-        visible: false,
+        visible: true,
         source: new ol.source.OSM()
     });
 
     var google = new ol.layer.Tile({
         type: 'base',
         title: 'Google',
-        visible: true,
+        visible: false,
         source: new ol.source.TileImage({url: 'http://maps.google.com/maps/vt?pb=!1m5!1m4!1i{z}!2i{x}!3i{y}!4i256!2m3!1e0!2sm!3i375060738!3m9!2spl!3sUS!5e18!12m1!1e47!12m3!1e37!2m1!1ssmartmaps!4e0'})
     })
 
@@ -312,9 +312,9 @@
         if (e.target.getFeatures().getLength() == 1) {
             action_list.display_info = true;
             if (e.target.getFeatures().getArray()[0].getProperties().source == 'osm') {
-                action_list.add_features = true;
-            }else if (e.target.getFeatures().getArray()[0].getProperties().source == 'kr') {
                 action_list.del_features = true;
+            }else if (e.target.getFeatures().getArray()[0].getProperties().source == 'kr') {
+                action_list.add_features = true;
             }
         } else if (e.target.getFeatures().getLength() == 2) {
             if (e.target.getFeatures().getArray()[0].getGeometry().getType() == e.target.getFeatures().getArray()[1].getGeometry().getType()) {
@@ -327,10 +327,10 @@
                     }
                 } else {
                     if (e.target.getFeatures().getArray()[0].getProperties().source == 'osm' && e.target.getFeatures().getArray()[1].getProperties().source == 'osm') {
-                        action_list.add_features = true;
+                        action_list.del_features = true;
                     }
                     else if (e.target.getFeatures().getArray()[0].getProperties().source == 'kr' && e.target.getFeatures().getArray()[1].getProperties().source == 'kr') {
-                        action_list.del_features = true;
+                        action_list.add_features = true;
                     }
                 }
             } else {
@@ -348,8 +348,8 @@
                 }
             });
 
-            if (onlyKR) action_list.del_features = true;
-            if (onlyOSM) action_list.add_features = true;
+            if (onlyOSM) action_list.del_features = true;
+            if (onlyKR) action_list.add_features = true;
         }
         processActionList();
     });
@@ -371,18 +371,18 @@
             $("#action").css("display", "block");
             $("#action").attr("onclick", "addOsmObjects()");
             $("#action").attr("class", "alert btn btn-warning row");
-            divToggle("action", true, "Add selected OSM objects to KR dataset");
+            divToggle("action", true, "Add selected KR objects to OSM dataset");
 
         } else if (action_list.replace_features) {
             $("#action").css("display", "block");
             $("#action").attr("onclick", "replaceObjects()");
             $("#action").attr("class", "alert btn btn-warning row");
-            divToggle("action", true, "Replace KR object <b>" + getObject(features, "kr").getId() + "</b> with OSM object <b>" + getObject(features, "osm").getId() + "</b>");
+            divToggle("action", true, "Replace OSM object <b>" + getObject(features, "osm").getId() + "</b> with KR object <b>" + getObject(features, "kr").getId() + "</b>");
         } else if (action_list.del_features) {
             $("#action").css("display", "block");
             $("#action").attr("onclick", "deleteObjects()");
             $("#action").attr("class", "alert btn btn-danger row");
-            divToggle("action", true, "Delete selected KR objects");
+            divToggle("action", true, "Delete selected OSM objects");
         }
 
     }
@@ -455,7 +455,7 @@
 
         $.ajax({
             type: "POST",
-            url: "${pageContext.request.contextPath}/addOsmToDataSet",
+            url: "${pageContext.request.contextPath}/addToOsmDataSet",
             data: JSON.stringify(origArray),
             contentType: "application/json",
             async: false,
@@ -463,11 +463,11 @@
                 addIntersectsDataData(lastExtent);
                 divToggles(["action", "action_info"], false);
                 $("#action_res").attr("class", "alert alert-success row");
-                divToggle("action_res", true, "Succesfully added to KR dataset");
+                divToggle("action_res", true, "Succesfully added to OSM dataset");
             }
         }).fail(function () {
             $("#action_res").attr("class", "alert alert-danger row");
-            divToggle("action_res", true, "Error on adding to KR dataset");
+            divToggle("action_res", true, "Error on adding to OSM dataset");
         });
     }
 

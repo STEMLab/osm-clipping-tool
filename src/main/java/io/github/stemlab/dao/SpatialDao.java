@@ -14,7 +14,7 @@ public interface SpatialDao {
 
     List<Feature> getKRIntersectsWithTopologyType(Envelope envelope, String table);
 
-    void addToKR(String from, String dest, Long id);
+    void addToOSM(String from, String dest, Long id);
 
     Double getHausdorffDistance(Long krID, Long osmID);
 
