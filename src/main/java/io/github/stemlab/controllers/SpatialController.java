@@ -5,6 +5,7 @@ import io.github.stemlab.entity.Feature;
 import io.github.stemlab.entity.FeatureCollection;
 import io.github.stemlab.exception.OSMToolException;
 import io.github.stemlab.service.SpatialService;
+import io.github.stemlab.session.SessionStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -19,10 +20,14 @@ public class SpatialController {
     @Autowired
     SpatialService spatialService;
 
+    @Autowired
+    SessionStore sessionStore;
+
     @RequestMapping(value = "/intersects", method = RequestMethod.GET)
     public
     @ResponseBody
     FeatureCollection getIntersects(Envelope envelope, @RequestParam(value = "tables[]") String[] tables) throws Exception {
+        sessionStore.initialize();
         return new FeatureCollection(spatialService.getIntersectsWithTopology(envelope, tables));
     }
 

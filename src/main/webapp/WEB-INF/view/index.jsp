@@ -136,44 +136,82 @@
         view: view
     });
 
-    function getStyle(feature) {
+    function getStyle(feature, matched) {
 
         if (feature.getProperties().source == 'osm') {
-            return new ol.style.Style({
-                stroke: new ol.style.Stroke({
-                    color: 'red',
-                    lineDash: [4],
-                    width: 3
-                }),
-                text: new ol.style.Text({
-                    font: '12px Calibri,sans-serif',
-                    fill: new ol.style.Fill({color: '#000'}),
+            if (feature.getProperties().candidate != null) {
+                return new ol.style.Style({
                     stroke: new ol.style.Stroke({
-                        color: 'red', width: 2
+                        color: 'red',
+                        lineDash: [4],
+                        width: 3
                     }),
-                    // get the text from the feature - `this` is ol.Feature
-                    // and show only under certain resolution
-                    text: getText(feature)
+                    text: new ol.style.Text({
+                        font: '12px Calibri,sans-serif',
+                        fill: new ol.style.Fill({color: '#000'}),
+                        stroke: new ol.style.Stroke({
+                            color: 'red', width: 2
+                        }),
+                        // get the text from the feature - `this` is ol.Feature
+                        // and show only under certain resolution
+                        text: getText(feature)
+                    })
                 })
-            })
+            } else {
+                return new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: 'red',
+                        width: 3
+                    }),
+                    text: new ol.style.Text({
+                        font: '12px Calibri,sans-serif',
+                        fill: new ol.style.Fill({color: '#000'}),
+                        stroke: new ol.style.Stroke({
+                            color: 'red', width: 2
+                        }),
+                        // get the text from the feature - `this` is ol.Feature
+                        // and show only under certain resolution
+                        text: getText(feature)
+                    })
+                })
+            }
         } else if (feature.getProperties().source == 'kr') {
-            return new ol.style.Style({
-                stroke: new ol.style.Stroke({
-                    color: 'black',
-                    lineDash: [4],
-                    width: 3
-                }),
-                text: new ol.style.Text({
-                    font: '12px Calibri,sans-serif',
-                    fill: new ol.style.Fill({color: '#000'}),
+            if (feature.getProperties().candidate != null) {
+                return new ol.style.Style({
                     stroke: new ol.style.Stroke({
-                        color: 'black', width: 2
+                        color: 'black',
+                        lineDash: [4],
+                        width: 3
                     }),
-                    // get the text from the feature - `this` is ol.Feature
-                    // and show only under certain resolution
-                    text: getText(feature)
+                    text: new ol.style.Text({
+                        font: '12px Calibri,sans-serif',
+                        fill: new ol.style.Fill({color: '#000'}),
+                        stroke: new ol.style.Stroke({
+                            color: 'black', width: 2
+                        }),
+                        // get the text from the feature - `this` is ol.Feature
+                        // and show only under certain resolution
+                        text: getText(feature)
+                    })
                 })
-            })
+            } else {
+                return new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: 'black',
+                        width: 3
+                    }),
+                    text: new ol.style.Text({
+                        font: '12px Calibri,sans-serif',
+                        fill: new ol.style.Fill({color: '#000'}),
+                        stroke: new ol.style.Stroke({
+                            color: 'black', width: 2
+                        }),
+                        // get the text from the feature - `this` is ol.Feature
+                        // and show only under certain resolution
+                        text: getText(feature)
+                    })
+                })
+            }
         }
     }
 
@@ -265,6 +303,7 @@
                 matchSurfaceHTML += '<tr><th class="col-md-2">ID</th><th class="col-md-2">Topology</th><th class="col-md-3">Name</th><th class="col-md-3">OSM matched feature</th><th class="col-md-2">Surface matching</th></tr>';
                 matchhausdorffHTML += '<tr><th class="col-md-2">ID</th><th class="col-md-2">Topology</th><th class="col-md-3">Name</th><th class="col-md-3">OSM matched feature</th><th class="col-md-2">Line matching</th></tr>';
                 features.forEach(function (feature) {
+
                     if (feature.getGeometry().getType() == 'MultiPolygon') {
                         checkPolygon = true;
                         matchSurfaceHTML += '<tr>' + '<td class="col-md-2"><button class="btn btn-link selectFeature" data-feature-id="' + feature.getId() + '">' + feature.getId() + '</button></td>' + '<td class="col-md-2">' + (feature.getProperties().topology_type).toUpperCase() + '</td>' + '<td class="col-md-3">' + ((feature.getProperties().name == null) ? 'No information' : feature.getProperties().name) + '</td>' + '<td class="col-md-3"><button class="btn btn-link selectFeature" data-feature-id="' + feature.getProperties().candidate + '">' + feature.getProperties().candidate + '</button></td>' + '<td class="col-md-2">' + parseFloat(Math.round(feature.getProperties().candidateDistance * 100) / 100).toFixed(2) + '%</td>' + '</tr>';
@@ -274,6 +313,9 @@
                     } else {
                         console.log("ID: " + feature.getId() + " Source: " + feature.getProperties().source + " Topology type: " + feature.getProperties().topology_type + " Name: " + feature.getProperties().name);
                     }
+                    vectorSource.removeFeature(vectorSource.getFeatureById(feature.getId()));
+                    vectorSource.addFeature(feature);
+
                 });
                 matchSurfaceHTML += '</table>';
                 matchhausdorffHTML += '</table>';
@@ -481,7 +523,7 @@
             contentType: "application/json",
             async: false,
             success: function (respose) {
-                divToggle("action_info", true, "Hausdorff matching: " + parseFloat(Math.round(respose * 100) / 100).toFixed(2) + " m")
+                divToggle("action_info", true, "Hausdorff matching: " + parseFloat(Math.round(respose * 100) / 100).toFixed(2) + " %")
             }
         }).fail(function () {
             alert("Error hausdorff");

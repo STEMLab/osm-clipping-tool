@@ -1,7 +1,6 @@
 package io.github.stemlab.service.impl;
 
 import com.github.davidmoten.rtree.Entry;
-import com.github.davidmoten.rtree.RTree;
 import com.github.davidmoten.rtree.geometry.Geometries;
 import com.github.davidmoten.rtree.geometry.Geometry;
 import io.github.stemlab.dao.SpatialDao;
@@ -9,11 +8,13 @@ import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
 import io.github.stemlab.exception.OSMToolException;
 import io.github.stemlab.service.SpatialService;
+import io.github.stemlab.session.SessionStore;
 import io.github.stemlab.utils.Distance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rx.Observable;
 
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
@@ -34,43 +35,31 @@ public class SpatialServiceImpl implements SpatialService {
     private static double MAX_SURFACE_DISTANCE = 50.0;
     private static double MAX_HAUSDORFF_DISTANCE = 60.0;
     private static String TABLE_NAME_PROPERTY = "tablename";
+
     @Autowired
     SpatialDao spatialDao;
-    List<Feature> OSMBuildingFeatures;
-    List<Feature> KRBuildingFeatures;
-    List<Feature> KRRoadFeatures;
-    List<Feature> OSMRoadFeatures;
 
-    public List<Feature> getIntersectsWithTopology(Envelope envelope, String... tables) throws OSMToolException {
+    @Autowired
+    SessionStore sessionStore;
 
+    public List<Feature> getIntersectsWithTopology(Envelope envelope, String... tables) throws OSMToolException, SQLException {
 
-        OSMBuildingFeatures = new LinkedList<Feature>();
-        KRBuildingFeatures = new LinkedList<Feature>();
-
-        KRRoadFeatures = new LinkedList<Feature>();
-        OSMRoadFeatures = new LinkedList<Feature>();
-
-        List<Feature> features = new LinkedList<Feature>();
+        List<Feature> features = new LinkedList<>();
 
 
         for (String table : tables) {
             if (table.equals(OSM_BUILDING_NAME)) {
-                OSMBuildingFeatures = spatialDao.getOSMIntersectsWithTopologyType(envelope, OSM_BUILDING_NAME);
-                features.addAll(OSMBuildingFeatures);
+                features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope, OSM_BUILDING_NAME));
             } else if (table.equals(OSM_ROAD_NAME)) {
-                OSMRoadFeatures = spatialDao.getOSMIntersectsWithTopologyType(envelope, OSM_ROAD_NAME);
-                features.addAll(OSMRoadFeatures);
+                features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope, OSM_ROAD_NAME));
             } else if (table.equals(KR_ROAD_NAME)) {
-                KRRoadFeatures = spatialDao.getKRIntersectsWithTopologyType(envelope, KR_ROAD_NAME);
-                features.addAll(KRRoadFeatures);
+                features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope, KR_ROAD_NAME));
             } else if (table.equals(KR_BUILDING_NAME)) {
-                KRBuildingFeatures = spatialDao.getKRIntersectsWithTopologyType(envelope, KR_BUILDING_NAME);
-                features.addAll(KRBuildingFeatures);
+                features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope, KR_BUILDING_NAME));
             } else {
                 throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + table);
             }
         }
-
 
         return features;
     }
@@ -80,40 +69,24 @@ public class SpatialServiceImpl implements SpatialService {
         List<Feature> listSurface = new LinkedList<Feature>();
         List<Feature> listLine = new LinkedList<Feature>();
 
-
-        RTree<Feature, Geometry> lineTree = RTree.star().create();
-        RTree<Feature, Geometry> surfaceTree = RTree.star().create();
-        for (Feature feature : KRRoadFeatures) {
-            int size = feature.getGeometry().getCoordinates().length;
-            lineTree = lineTree.add(feature, Geometries.line(feature.getGeometry().getCoordinates()[0].x, feature.getGeometry().getCoordinates()[0].y, feature.getGeometry().getCoordinates()[size - 1].x, feature.getGeometry().getCoordinates()[size - 1].y));
-        }
-        for (Feature feature : OSMRoadFeatures) {
-            int size = feature.getGeometry().getCoordinates().length;
-            lineTree = lineTree.add(feature, Geometries.line(feature.getGeometry().getCoordinates()[0].x, feature.getGeometry().getCoordinates()[0].y, feature.getGeometry().getCoordinates()[size - 1].x, feature.getGeometry().getCoordinates()[size - 1].y));
-        }
-
-        for (Feature feature : OSMBuildingFeatures) {
-            surfaceTree = surfaceTree.add(feature, Geometries.rectangle(feature.getGeometry().getEnvelopeInternal().getMinX(), feature.getGeometry().getEnvelopeInternal().getMinY(), feature.getGeometry().getEnvelopeInternal().getMaxX(), feature.getGeometry().getEnvelopeInternal().getMaxY()));
-        }
-        for (Feature feature : KRBuildingFeatures) {
-            surfaceTree = surfaceTree.add(feature, Geometries.rectangle(feature.getGeometry().getEnvelopeInternal().getMinX(), feature.getGeometry().getEnvelopeInternal().getMinY(), feature.getGeometry().getEnvelopeInternal().getMaxX(), feature.getGeometry().getEnvelopeInternal().getMaxY()));
-        }
-
-
         Instant startSurface = Instant.now();
-        for (Feature feature : KRBuildingFeatures) {
+
+        List<Entry<Feature, Geometry>> buildings = sessionStore.getSurfaceTree().entries().filter(entry -> entry.value().getProperties().get("source").equals("kr")).toList().toBlocking().single();
+        List<Entry<Feature, Geometry>> roads = sessionStore.getLineTree().entries().filter(entry -> entry.value().getProperties().get("source").equals("kr")).toList().toBlocking().single();
+
+        for (Entry<Feature, Geometry> feature : buildings) {
             double max = MAX_SURFACE_DISTANCE;
             Long chosenFeature = null;
 
-            com.vividsolutions.jts.geom.Envelope g = feature.getGeometry().getEnvelopeInternal();
+            com.vividsolutions.jts.geom.Envelope g = feature.value().getGeometry().getEnvelopeInternal();
             Observable<Entry<Feature, Geometry>> entries =
-                    surfaceTree.search(Geometries.rectangle(g.getMinX(), g.getMinY(), g.getMaxX(), g.getMaxY())).filter(entry -> entry.value().getProperties().get("source") != "kr");
+                    sessionStore.getSurfaceTree().search(Geometries.rectangle(g.getMinX(), g.getMinY(), g.getMaxX(), g.getMaxY())).filter(entry -> !entry.value().getProperties().get("source").equals("kr"));
 
             List<Entry<Feature, Geometry>> myList = entries.toList().toBlocking().single();
 
             for (Entry<Feature, Geometry> entry : myList) {
-                double distance = Distance.surface(feature.getGeometry(), entry.value().getGeometry());
-                System.out.println("Surface distance beetween : " + feature.getId() + " and " + entry.value().getId() + " = " + distance);
+                double distance = Distance.surface(feature.value().getGeometry(), entry.value().getGeometry());
+                System.out.println("Surface distance beetween : " + feature.value().getId() + " and " + entry.value().getId() + " = " + distance);
                 if (distance > max) {
                     max = distance;
                     chosenFeature = entry.value().getId();
@@ -121,9 +94,9 @@ public class SpatialServiceImpl implements SpatialService {
             }
 
             if (chosenFeature != null) {
-                feature.addProperty("candidate", String.valueOf(chosenFeature));
-                feature.addProperty("candidateDistance", String.valueOf(max));
-                listSurface.add(feature);
+                feature.value().addProperty("candidate", String.valueOf(chosenFeature));
+                feature.value().addProperty("candidateDistance", String.valueOf(max));
+                listSurface.add(feature.value());
             }
         }
 
@@ -136,17 +109,17 @@ public class SpatialServiceImpl implements SpatialService {
         Comparator<Feature> matchDistanceComparator = Comparator.comparingDouble(o -> Double.parseDouble(o.getProperties().get("candidateDistance")));
         listSurface.sort(matchDistanceComparator.reversed());
         Instant startLine = Instant.now();
-        for (Feature feature : KRRoadFeatures) {
-            com.vividsolutions.jts.geom.Envelope g = feature.getGeometry().getEnvelopeInternal();
+        for (Entry<Feature, Geometry> feature : roads) {
+            com.vividsolutions.jts.geom.Envelope g = feature.value().getGeometry().getEnvelopeInternal();
             Observable<Entry<Feature, Geometry>> entries =
-                    lineTree.search(Geometries.rectangle(g.getMinX(), g.getMinY(), g.getMaxX(), g.getMaxY())).filter(entry -> entry.value().getProperties().get("source") != "kr");
+                    sessionStore.getLineTree().search(Geometries.rectangle(g.getMinX(), g.getMinY(), g.getMaxX(), g.getMaxY())).filter(entry -> !entry.value().getProperties().get("source").equals("kr"));
             Long chosenFeature = null;
             double min = MAX_HAUSDORFF_DISTANCE;
             List<Entry<Feature, Geometry>> myList = entries.toList().toBlocking().single();
 
             for (Entry<Feature, Geometry> entry : myList) {
-                double distance = Distance.hausdorff(feature.getGeometry(), entry.value().getGeometry());
-                System.out.println("Hausdorff distance beetween : " + feature.getId() + " and " + entry.value().getId() + " = " + distance);
+                double distance = Distance.hausdorff(feature.value().getGeometry(), entry.value().getGeometry());
+                System.out.println("Hausdorff distance beetween : " + feature.value().getId() + " and " + entry.value().getId() + " = " + distance);
                 if (distance > min) {
                     min = distance;
                     chosenFeature = entry.value().getId();
@@ -154,9 +127,9 @@ public class SpatialServiceImpl implements SpatialService {
             }
 
             if (chosenFeature != null) {
-                feature.addProperty("candidate", String.valueOf(chosenFeature));
-                feature.addProperty("candidateDistance", String.valueOf(min));
-                listLine.add(feature);
+                feature.value().addProperty("candidate", String.valueOf(chosenFeature));
+                feature.value().addProperty("candidateDistance", String.valueOf(min));
+                listLine.add(feature.value());
             }
         }
 

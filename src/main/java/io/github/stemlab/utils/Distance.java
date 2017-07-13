@@ -17,9 +17,16 @@ public class Distance {
     public static double surface(Geometry a, Geometry b) {
 
         GeometryFactory geometryFactory = new GeometryFactory();
+        Polygon polygon;
+        Polygon polygon1;
+        try {
+            polygon = geometryFactory.createPolygon(a.getCoordinates());
+            polygon1 = geometryFactory.createPolygon(b.getCoordinates());
+        } catch (IllegalArgumentException exception) {
+            System.out.println("Not closed geometry");
+            return 0.0;
+        }
 
-        Polygon polygon = geometryFactory.createPolygon(a.getCoordinates());
-        Polygon polygon1 = geometryFactory.createPolygon(b.getCoordinates());
 
         Geometry intersection = polygon.intersection(polygon1);
         Geometry union = polygon.union(polygon1);

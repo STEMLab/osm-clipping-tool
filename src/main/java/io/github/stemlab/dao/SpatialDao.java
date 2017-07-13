@@ -3,6 +3,7 @@ package io.github.stemlab.dao;
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
 
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -10,9 +11,9 @@ import java.util.List;
  */
 
 public interface SpatialDao {
-    List<Feature> getOSMIntersectsWithTopologyType(Envelope envelope, String table);
+    List<Feature> getOSMIntersectsWithTopologyType(Envelope envelope, String table) throws SQLException;
 
-    List<Feature> getKRIntersectsWithTopologyType(Envelope envelope, String table);
+    List<Feature> getKRIntersectsWithTopologyType(Envelope envelope, String table) throws SQLException;
 
     void addToOSM(String from, String dest, Long id);
 
