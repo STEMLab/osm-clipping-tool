@@ -1,13 +1,21 @@
 package io.github.stemlab.service.impl;
 
+import com.github.davidmoten.rtree.Entry;
+import com.github.davidmoten.rtree.RTree;
+import com.github.davidmoten.rtree.geometry.Geometries;
+import com.github.davidmoten.rtree.geometry.Geometry;
 import io.github.stemlab.dao.SpatialDao;
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
 import io.github.stemlab.exception.OSMToolException;
 import io.github.stemlab.service.SpatialService;
+import io.github.stemlab.utils.Distance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import rx.Observable;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,8 +31,8 @@ public class SpatialServiceImpl implements SpatialService {
     public static String KR_ROAD_NAME = "road_kr";
     public static String OSM_ROAD_NAME = "road";
     private static String UNDEFINED_TABLE_EXCEPTION = "UNDEFINED TABLE:";
-    private static double MAX_SURFACE_DISTANCE = 0.0;
-    private static double MAX_HAUSDORFF_DISTANCE = 15.0;
+    private static double MAX_SURFACE_DISTANCE = 50.0;
+    private static double MAX_HAUSDORFF_DISTANCE = 60.0;
     private static String TABLE_NAME_PROPERTY = "tablename";
     @Autowired
     SpatialDao spatialDao;
@@ -44,6 +52,7 @@ public class SpatialServiceImpl implements SpatialService {
 
         List<Feature> features = new LinkedList<Feature>();
 
+
         for (String table : tables) {
             if (table.equals(OSM_BUILDING_NAME)) {
                 OSMBuildingFeatures = spatialDao.getOSMIntersectsWithTopologyType(envelope, OSM_BUILDING_NAME);
@@ -61,6 +70,8 @@ public class SpatialServiceImpl implements SpatialService {
                 throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + table);
             }
         }
+
+
         return features;
     }
 
@@ -69,46 +80,92 @@ public class SpatialServiceImpl implements SpatialService {
         List<Feature> listSurface = new LinkedList<Feature>();
         List<Feature> listLine = new LinkedList<Feature>();
 
+
+        RTree<Feature, Geometry> lineTree = RTree.star().create();
+        RTree<Feature, Geometry> surfaceTree = RTree.star().create();
+        for (Feature feature : KRRoadFeatures) {
+            int size = feature.getGeometry().getCoordinates().length;
+            lineTree = lineTree.add(feature, Geometries.line(feature.getGeometry().getCoordinates()[0].x, feature.getGeometry().getCoordinates()[0].y, feature.getGeometry().getCoordinates()[size - 1].x, feature.getGeometry().getCoordinates()[size - 1].y));
+        }
+        for (Feature feature : OSMRoadFeatures) {
+            int size = feature.getGeometry().getCoordinates().length;
+            lineTree = lineTree.add(feature, Geometries.line(feature.getGeometry().getCoordinates()[0].x, feature.getGeometry().getCoordinates()[0].y, feature.getGeometry().getCoordinates()[size - 1].x, feature.getGeometry().getCoordinates()[size - 1].y));
+        }
+
+        for (Feature feature : OSMBuildingFeatures) {
+            surfaceTree = surfaceTree.add(feature, Geometries.rectangle(feature.getGeometry().getEnvelopeInternal().getMinX(), feature.getGeometry().getEnvelopeInternal().getMinY(), feature.getGeometry().getEnvelopeInternal().getMaxX(), feature.getGeometry().getEnvelopeInternal().getMaxY()));
+        }
+        for (Feature feature : KRBuildingFeatures) {
+            surfaceTree = surfaceTree.add(feature, Geometries.rectangle(feature.getGeometry().getEnvelopeInternal().getMinX(), feature.getGeometry().getEnvelopeInternal().getMinY(), feature.getGeometry().getEnvelopeInternal().getMaxX(), feature.getGeometry().getEnvelopeInternal().getMaxY()));
+        }
+
+
+        Instant startSurface = Instant.now();
         for (Feature feature : KRBuildingFeatures) {
             double max = MAX_SURFACE_DISTANCE;
-            Feature chosenFeature = null;
-            for (Feature secondFeature : OSMBuildingFeatures) {
-                double distance = getSurfaceDistance(feature, secondFeature);
+            Long chosenFeature = null;
+
+            com.vividsolutions.jts.geom.Envelope g = feature.getGeometry().getEnvelopeInternal();
+            Observable<Entry<Feature, Geometry>> entries =
+                    surfaceTree.search(Geometries.rectangle(g.getMinX(), g.getMinY(), g.getMaxX(), g.getMaxY())).filter(entry -> entry.value().getProperties().get("source") != "kr");
+
+            List<Entry<Feature, Geometry>> myList = entries.toList().toBlocking().single();
+
+            for (Entry<Feature, Geometry> entry : myList) {
+                double distance = Distance.surface(feature.getGeometry(), entry.value().getGeometry());
+                System.out.println("Surface distance beetween : " + feature.getId() + " and " + entry.value().getId() + " = " + distance);
                 if (distance > max) {
                     max = distance;
-                    chosenFeature = secondFeature;
+                    chosenFeature = entry.value().getId();
                 }
             }
+
             if (chosenFeature != null) {
-                feature.addProperty("candidate", chosenFeature.getId().toString());
-                feature.addProperty("candidateDistance", getSurfaceDistance(feature, chosenFeature).toString());
+                feature.addProperty("candidate", String.valueOf(chosenFeature));
+                feature.addProperty("candidateDistance", String.valueOf(max));
                 listSurface.add(feature);
             }
         }
 
 
-        Comparator<Feature> matchDistanceComparator = Comparator.comparingDouble(o -> Double.parseDouble(o.getProperties().get("candidateDistance")));
-            listSurface.sort(matchDistanceComparator.reversed());
+        Instant endSurface = Instant.now();
 
+        System.out.println("Surface time : " + Duration.between(startSurface, endSurface));
+
+
+        Comparator<Feature> matchDistanceComparator = Comparator.comparingDouble(o -> Double.parseDouble(o.getProperties().get("candidateDistance")));
+        listSurface.sort(matchDistanceComparator.reversed());
+        Instant startLine = Instant.now();
         for (Feature feature : KRRoadFeatures) {
+            com.vividsolutions.jts.geom.Envelope g = feature.getGeometry().getEnvelopeInternal();
+            Observable<Entry<Feature, Geometry>> entries =
+                    lineTree.search(Geometries.rectangle(g.getMinX(), g.getMinY(), g.getMaxX(), g.getMaxY())).filter(entry -> entry.value().getProperties().get("source") != "kr");
+            Long chosenFeature = null;
             double min = MAX_HAUSDORFF_DISTANCE;
-            Feature chosenFeature = null;
-            for (Feature secondFeature : OSMRoadFeatures) {
-                double distance = getHausdorffDistance(feature, secondFeature);
-                ;
-                if (distance < min) {
+            List<Entry<Feature, Geometry>> myList = entries.toList().toBlocking().single();
+
+            for (Entry<Feature, Geometry> entry : myList) {
+                double distance = Distance.hausdorff(feature.getGeometry(), entry.value().getGeometry());
+                System.out.println("Hausdorff distance beetween : " + feature.getId() + " and " + entry.value().getId() + " = " + distance);
+                if (distance > min) {
                     min = distance;
-                    chosenFeature = secondFeature;
+                    chosenFeature = entry.value().getId();
                 }
             }
+
             if (chosenFeature != null) {
-                feature.addProperty("candidate", chosenFeature.getId().toString());
-                feature.addProperty("candidateDistance", getHausdorffDistance(feature, chosenFeature).toString());
+                feature.addProperty("candidate", String.valueOf(chosenFeature));
+                feature.addProperty("candidateDistance", String.valueOf(min));
                 listLine.add(feature);
             }
         }
 
-        listLine.sort(matchDistanceComparator);
+        Instant endLine = Instant.now();
+
+        System.out.println("Line time : " + Duration.between(startLine, endLine));
+
+
+        listLine.sort(matchDistanceComparator.reversed());
 
         List<Feature> list = new LinkedList<Feature>();
         list.addAll(listSurface);
@@ -158,7 +215,7 @@ public class SpatialServiceImpl implements SpatialService {
                 if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
                     spatialDao.deleteObjects(OSM_ROAD_NAME, feature.getId());
                 } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
-                    spatialDao.deleteObjects(OSM_BUILDING_NAME,feature.getId());
+                    spatialDao.deleteObjects(OSM_BUILDING_NAME, feature.getId());
                 } else {
                     throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
                 }
@@ -169,11 +226,7 @@ public class SpatialServiceImpl implements SpatialService {
     public Double getHausdorffDistance(Feature... features) throws OSMToolException {
         if (features.length == 2) {
             if (features[0].getProperties().containsKey(TABLE_NAME_PROPERTY) && features[1].getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-                if (features[0].getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
-                    return spatialDao.getHausdorffDistance(features[1].getId(), features[0].getId());
-                } else {
-                    return spatialDao.getHausdorffDistance(features[0].getId(), features[1].getId());
-                }
+                return Distance.hausdorff(features[1].getGeometry(), features[0].getGeometry());
             } else {
                 throw new OSMToolException("NO KEY TABLENAME");
             }
@@ -185,11 +238,7 @@ public class SpatialServiceImpl implements SpatialService {
     public Double getSurfaceDistance(Feature... features) throws OSMToolException {
         if (features.length == 2) {
             if (features[0].getProperties().containsKey(TABLE_NAME_PROPERTY) && features[1].getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-                if (features[0].getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
-                    return spatialDao.getSurfaceDistance(features[1].getId(), features[0].getId());
-                } else {
-                    return spatialDao.getSurfaceDistance(features[0].getId(), features[1].getId());
-                }
+                return Distance.surface(features[0].getGeometry(), features[1].getGeometry());
             } else {
                 throw new OSMToolException("NO KEY TABLENAME");
             }

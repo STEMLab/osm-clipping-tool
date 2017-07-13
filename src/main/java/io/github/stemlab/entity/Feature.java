@@ -1,10 +1,18 @@
 package io.github.stemlab.entity;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.vividsolutions.jts.geom.Geometry;
+import io.github.stemlab.serializer.FeatureDeserializer;
+import io.github.stemlab.serializer.FeatureSerializer;
+
 import java.util.Map;
 
 /**
  * Created by Azamat on 6/2/2017.
  */
+@JsonSerialize(using = FeatureSerializer.class)
+@JsonDeserialize(using = FeatureDeserializer.class)
 public class Feature {
 
     private static String type = "Feature";
@@ -28,11 +36,15 @@ public class Feature {
         return type;
     }
 
-    public Geometry getGeometry() {
+    public static void setType(String type) {
+        Feature.type = type;
+    }
+
+    public com.vividsolutions.jts.geom.Geometry getGeometry() {
         return geometry;
     }
 
-    public void setGeometry(Geometry geometry) {
+    public void setGeometry(com.vividsolutions.jts.geom.Geometry geometry) {
         this.geometry = geometry;
     }
 

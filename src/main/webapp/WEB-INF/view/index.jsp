@@ -107,7 +107,6 @@
     var vectorSource = new ol.source.Vector({});
 
 
-
     var styleFunction = function (feature) {
         return getStyle(feature);
     };
@@ -139,7 +138,7 @@
 
     function getStyle(feature) {
 
-        if(feature.getProperties().source=='osm'){
+        if (feature.getProperties().source == 'osm') {
             return new ol.style.Style({
                 stroke: new ol.style.Stroke({
                     color: 'red',
@@ -148,7 +147,7 @@
                 }),
                 text: new ol.style.Text({
                     font: '12px Calibri,sans-serif',
-                    fill: new ol.style.Fill({ color: '#000' }),
+                    fill: new ol.style.Fill({color: '#000'}),
                     stroke: new ol.style.Stroke({
                         color: 'red', width: 2
                     }),
@@ -157,7 +156,7 @@
                     text: getText(feature)
                 })
             })
-         }else if(feature.getProperties().source=='kr'){
+        } else if (feature.getProperties().source == 'kr') {
             return new ol.style.Style({
                 stroke: new ol.style.Stroke({
                     color: 'black',
@@ -166,7 +165,7 @@
                 }),
                 text: new ol.style.Text({
                     font: '12px Calibri,sans-serif',
-                    fill: new ol.style.Fill({ color: '#000' }),
+                    fill: new ol.style.Fill({color: '#000'}),
                     stroke: new ol.style.Stroke({
                         color: 'black', width: 2
                     }),
@@ -178,14 +177,14 @@
         }
     }
 
-    function getText(feature){
+    function getText(feature) {
 
-        if (map.getView().getZoom() > 18 && map.getView().getZoom() <= 20){
+        if (map.getView().getZoom() > 18 && map.getView().getZoom() <= 20) {
             return (feature.getProperties().source).toUpperCase()
-        }else if(map.getView().getZoom() > 20){
+        } else if (map.getView().getZoom() > 20) {
             return String(feature.getId());
         }
-        else{
+        else {
             return "";
         }
     }
@@ -264,14 +263,14 @@
                 var matchSurfaceHTML = '<table class="table table-responsive">';
                 var matchhausdorffHTML = '<table class="table table-responsive">';
                 matchSurfaceHTML += '<tr><th class="col-md-2">ID</th><th class="col-md-2">Topology</th><th class="col-md-3">Name</th><th class="col-md-3">OSM matched feature</th><th class="col-md-2">Surface matching</th></tr>';
-                matchhausdorffHTML += '<tr><th class="col-md-2">ID</th><th class="col-md-2">Topology</th><th class="col-md-3">Name</th><th class="col-md-3">OSM matched feature</th><th class="col-md-2">Hausdorff distance</th></tr>';
+                matchhausdorffHTML += '<tr><th class="col-md-2">ID</th><th class="col-md-2">Topology</th><th class="col-md-3">Name</th><th class="col-md-3">OSM matched feature</th><th class="col-md-2">Line matching</th></tr>';
                 features.forEach(function (feature) {
                     if (feature.getGeometry().getType() == 'MultiPolygon') {
                         checkPolygon = true;
                         matchSurfaceHTML += '<tr>' + '<td class="col-md-2"><button class="btn btn-link selectFeature" data-feature-id="' + feature.getId() + '">' + feature.getId() + '</button></td>' + '<td class="col-md-2">' + (feature.getProperties().topology_type).toUpperCase() + '</td>' + '<td class="col-md-3">' + ((feature.getProperties().name == null) ? 'No information' : feature.getProperties().name) + '</td>' + '<td class="col-md-3"><button class="btn btn-link selectFeature" data-feature-id="' + feature.getProperties().candidate + '">' + feature.getProperties().candidate + '</button></td>' + '<td class="col-md-2">' + parseFloat(Math.round(feature.getProperties().candidateDistance * 100) / 100).toFixed(2) + '%</td>' + '</tr>';
                     } else if (feature.getGeometry().getType() == 'MultiLineString') {
                         checkLine = true;
-                        matchhausdorffHTML += '<tr>' + '<td class="col-md-2"><button class="btn btn-link selectFeature" data-feature-id="' + feature.getId() + '">' + feature.getId() + '</button></td>' + '<td class="col-md-2">' + (feature.getProperties().topology_type).toUpperCase() + '</td>' + '<td class="col-md-3">' + ((feature.getProperties().name == null) ? 'No information' : feature.getProperties().name) + '</td>' + '<td class="col-md-3"><button class="btn btn-link selectFeature" data-feature-id="' + feature.getProperties().candidate + '">' + feature.getProperties().candidate + '</button></td>' + '<td class="col-md-2">' + parseFloat(Math.round(feature.getProperties().candidateDistance * 100) / 100).toFixed(2) + ' m</td>' + '</tr>';
+                        matchhausdorffHTML += '<tr>' + '<td class="col-md-2"><button class="btn btn-link selectFeature" data-feature-id="' + feature.getId() + '">' + feature.getId() + '</button></td>' + '<td class="col-md-2">' + (feature.getProperties().topology_type).toUpperCase() + '</td>' + '<td class="col-md-3">' + ((feature.getProperties().name == null) ? 'No information' : feature.getProperties().name) + '</td>' + '<td class="col-md-3"><button class="btn btn-link selectFeature" data-feature-id="' + feature.getProperties().candidate + '">' + feature.getProperties().candidate + '</button></td>' + '<td class="col-md-2">' + parseFloat(Math.round(feature.getProperties().candidateDistance * 100) / 100).toFixed(2) + ' %</td>' + '</tr>';
                     } else {
                         console.log("ID: " + feature.getId() + " Source: " + feature.getProperties().source + " Topology type: " + feature.getProperties().topology_type + " Name: " + feature.getProperties().name);
                     }
@@ -307,13 +306,13 @@
 
     select.on('select', function (e) {
 
-        action_list.add_features = false, action_list.similarity_s = false, action_list.display_info = false, action_list.similarity_h = false,action_list.del_features = false, action_list.replace_features = false;
+        action_list.add_features = false, action_list.similarity_s = false, action_list.display_info = false, action_list.similarity_h = false, action_list.del_features = false, action_list.replace_features = false;
 
         if (e.target.getFeatures().getLength() == 1) {
             action_list.display_info = true;
             if (e.target.getFeatures().getArray()[0].getProperties().source == 'osm') {
                 action_list.del_features = true;
-            }else if (e.target.getFeatures().getArray()[0].getProperties().source == 'kr') {
+            } else if (e.target.getFeatures().getArray()[0].getProperties().source == 'kr') {
                 action_list.add_features = true;
             }
         } else if (e.target.getFeatures().getLength() == 2) {
@@ -343,7 +342,7 @@
             $.each(e.target.getFeatures().getArray(), function (index, value) {
                 if (value.getProperties().source == 'kr') {
                     onlyOSM = false;
-                }else if (value.getProperties().source == 'osm') {
+                } else if (value.getProperties().source == 'osm') {
                     onlyKR = false;
                 }
             });
@@ -482,7 +481,7 @@
             contentType: "application/json",
             async: false,
             success: function (respose) {
-                divToggle("action_info", true, "Hausdorff distance: " + parseFloat(Math.round(respose * 100) / 100).toFixed(2) + " m")
+                divToggle("action_info", true, "Hausdorff matching: " + parseFloat(Math.round(respose * 100) / 100).toFixed(2) + " m")
             }
         }).fail(function () {
             alert("Error hausdorff");
@@ -524,7 +523,17 @@
     });
 
     function makeSimple(feature) {
-        var simpleObject = {id: feature.getId(), properties: {'tablename': feature.getProperties().tablename}};
+        var simpleObject = {
+            type: "Feature",
+            id: feature.getId(),
+            geometry: {type: feature.getGeometry().getType(), coordinates: feature.getGeometry().getCoordinates()},
+            properties: {
+                'tablename': feature.getProperties().tablename,
+                'topology_type': feature.getProperties().topology_type,
+                'name': feature.getProperties().name,
+                'source': feature.getProperties().source
+            }
+        };
         return simpleObject; // returns cleaned up JSON
     }
 
