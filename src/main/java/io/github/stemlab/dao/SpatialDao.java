@@ -2,6 +2,7 @@ package io.github.stemlab.dao;
 
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
+import io.github.stemlab.entity.enums.Action;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -15,6 +16,10 @@ public interface SpatialDao {
 
     List<Feature> getKRIntersectsWithTopologyType(Envelope envelope, String table) throws SQLException;
 
+    List<Feature> getUNFeatures(String table) throws SQLException;
+
+    List<Feature> getOSMFeatures(String table) throws SQLException;
+
     void addToOSM(String from, String dest, Long id);
 
     Double getHausdorffDistance(Long krID, Long osmID);
@@ -24,4 +29,6 @@ public interface SpatialDao {
     void replaceObjects(String tableTo, String tableFrom, Long idTo, Long idFrom);
 
     void deleteObjects(String table, Long id);
+
+    void logAction(String ip, Long osm_id, Action action);
 }

@@ -23,25 +23,29 @@
         </div>
     </div>
     <div id="info" class="row">
-        <div class="form-inline">
+        <%--<div class="form-inline">
             <span style="margin-left: 10px;">WMS: </span>
             <label class="checkbox">
-                <input type="checkbox" id="inlineCheckbox1" value="road" name="tables"> Road OSM
+                <input type="checkbox" id="inlineCheckbox1" value="roadl_50k" name="tables"> Road 50K
             </label>
-            <label class="checkbox">
+            &lt;%&ndash;<label class="checkbox">
                 <input type="checkbox" id="inlineCheckbox2" name="tables" value="building"> Building OSM
+            </label>&ndash;%&gt;
+            <label class="checkbox">
+                <input type="checkbox" id="inlineCheckbox3" value="roadl_urban" name="tables"> Road Urban
             </label>
             <label class="checkbox">
-                <input type="checkbox" id="inlineCheckbox3" value="road_kr" name="tables"> Road KR
+                <input type="checkbox" id="inlineCheckbox4" name="tables" value="road_sa"> Road OSM
             </label>
-            <label class="checkbox">
-                <input type="checkbox" id="inlineCheckbox4" name="tables" value="building_kr"> Building
-                KR
-            </label>
-        </div>
+        </div>--%>
     </div>
     <div id="matchResult">
-        <div id="matchProcessing"></div>
+        <div id="matchProcessing">
+            <div>
+                <span>&nbsp;To select area by drawing boxes press <code>Shift &#8679; + click</code></span></br>
+                <span>&nbsp;To select multiple features hold <code>Shift &#8679;</code></span>
+            </div>
+        </div>
         <div id="resultContainer" class="container-fluid">
             <div id="matchSurface" class="row">
                 <div class="col-lg-12"></div>
@@ -69,16 +73,16 @@
         del_features: false
     };
 
-    var wmsSource = new ol.source.ImageWMS({
+    /*var wmsSource = new ol.source.ImageWMS({
         url: 'http://localhost:8081/geoserver/osm_demo/wms',
         params: {'LAYERS': ''}
-    });
+    });*/
 
-    var wmsLayer = new ol.layer.Image({
+   /* var wmsLayer = new ol.layer.Image({
         title: 'WMS',
         visible: true,
         source: wmsSource
-    });
+    });*/
 
     var osm = new ol.layer.Tile({
         title: 'OpenStreetMap',
@@ -96,23 +100,30 @@
 
 
     /// set center of map in google's crs
-    /* var busanLonLat = [];
-     var busantonWebMercator = ol.proj.fromLonLat(busanLonLat);*/
+     var busanLonLat = [28.411719, 9.529499 ];
+     var busantonWebMercator = ol.proj.fromLonLat(busanLonLat);
 
     var view = new ol.View({
-        center: [14129544.82809238, 4517183.023123029],
-        zoom: 15
+        center: busantonWebMercator,
+        zoom: 10
     });
 
     var vectorSource = new ol.source.Vector({});
 
+    var vectorFeaturesSource = new ol.source.Vector({});
 
     var styleFunction = function (feature) {
         return getStyle(feature);
     };
     var vectorLayer = new ol.layer.Vector({
-        title: 'Range query results',
         source: vectorSource,
+        style: styleFunction
+    });
+
+    var vectorFeaturesLayer = new ol.layer.Vector({
+        source: vectorFeaturesSource,
+        visible: false,
+        title: 'All data',
         style: styleFunction
     });
 
@@ -127,7 +138,8 @@
             new ol.layer.Group({
                 title: 'Features',
                 layers: [
-                    wmsLayer
+                    //wmsLayer
+                    vectorFeaturesLayer
                 ]
             }),
             vectorLayer
@@ -175,7 +187,7 @@
                     })
                 })
             }
-        } else if (feature.getProperties().source == 'kr') {
+        } else if (feature.getProperties().source == 'un') {
             if (feature.getProperties().candidate != null) {
                 return new ol.style.Style({
                     stroke: new ol.style.Stroke({
@@ -217,9 +229,9 @@
 
     function getText(feature) {
 
-        if (map.getView().getZoom() > 18 && map.getView().getZoom() <= 20) {
+        if (map.getView().getZoom() > 15 && map.getView().getZoom() <= 16) {
             return (feature.getProperties().source).toUpperCase()
-        } else if (map.getView().getZoom() > 20) {
+        } else if (map.getView().getZoom() > 16) {
             return String(feature.getId());
         }
         else {
@@ -254,7 +266,7 @@
     function addIntersectsDataData(extent) {
 
 
-        var tables = ["building", "road", "road_kr", "building_kr"];
+        var tables = ["road_sa", "roadl_50k", "roadl_urban"];
 
         $.get(
             "intersects",
@@ -267,6 +279,7 @@
             },
             function (data) {
                 var features = (new ol.format.GeoJSON()).readFeatures(data);
+                vectorFeaturesLayer.setVisible(false);
                 vectorSource.clear();
                 select.getFeatures().clear();
                 vectorSource.addFeatures(features);
@@ -300,8 +313,8 @@
 
                 var matchSurfaceHTML = '<table class="table table-responsive">';
                 var matchhausdorffHTML = '<table class="table table-responsive">';
-                matchSurfaceHTML += '<tr><th class="col-md-2">ID</th><th class="col-md-2">Topology</th><th class="col-md-3">Name</th><th class="col-md-3">OSM matched feature</th><th class="col-md-2">Surface matching</th></tr>';
-                matchhausdorffHTML += '<tr><th class="col-md-2">ID</th><th class="col-md-2">Topology</th><th class="col-md-3">Name</th><th class="col-md-3">OSM matched feature</th><th class="col-md-2">Line matching</th></tr>';
+                matchSurfaceHTML += '<tr><th class="col-md-2">ID</th><th class="col-md-2">Box intersection</th><th class="col-md-3">Name</th><th class="col-md-3">OSM matched feature</th><th class="col-md-2">Surface matching</th></tr>';
+                matchhausdorffHTML += '<tr><th class="col-md-2">ID</th><th class="col-md-2">Box intersection</th><th class="col-md-3">Name</th><th class="col-md-3">OSM matched feature</th><th class="col-md-2">Line matching</th></tr>';
                 features.forEach(function (feature) {
 
                     if (feature.getGeometry().getType() == 'MultiPolygon') {
@@ -332,7 +345,7 @@
                 $('.selectFeature').on('click', function (event) {
 
                     var feature = vectorSource.getFeatureById($(this).attr("data-feature-id"));
-                    map.getView().fit(feature.getGeometry(), map.getSize());
+                    map.getView().fit(feature.getGeometry());
 
                     select.getFeatures().clear();
                     select.getFeatures().push(feature);
@@ -346,6 +359,24 @@
 
     }
 
+    function displayAll(){
+        var tables = ["road_sa", "roadl_50k", "roadl_urban"];
+        for(var i=0; i<tables.length; i++){
+            $.get(
+                "features",{ "table": tables[i]},
+                function (data) {
+                    var features = (new ol.format.GeoJSON()).readFeatures(data);
+                    vectorFeaturesSource.addFeatures(features);
+                }).fail(function () {
+                alert("fail loading: " + tables[i]);
+            })
+        }
+    }
+
+    $( document ).ready(function() {
+        displayAll();
+    });
+
     select.on('select', function (e) {
 
         action_list.add_features = false, action_list.similarity_s = false, action_list.display_info = false, action_list.similarity_h = false, action_list.del_features = false, action_list.replace_features = false;
@@ -354,7 +385,7 @@
             action_list.display_info = true;
             if (e.target.getFeatures().getArray()[0].getProperties().source == 'osm') {
                 action_list.del_features = true;
-            } else if (e.target.getFeatures().getArray()[0].getProperties().source == 'kr') {
+            } else if (e.target.getFeatures().getArray()[0].getProperties().source == 'un') {
                 action_list.add_features = true;
             }
         } else if (e.target.getFeatures().getLength() == 2) {
@@ -370,7 +401,7 @@
                     if (e.target.getFeatures().getArray()[0].getProperties().source == 'osm' && e.target.getFeatures().getArray()[1].getProperties().source == 'osm') {
                         action_list.del_features = true;
                     }
-                    else if (e.target.getFeatures().getArray()[0].getProperties().source == 'kr' && e.target.getFeatures().getArray()[1].getProperties().source == 'kr') {
+                    else if (e.target.getFeatures().getArray()[0].getProperties().source == 'un' && e.target.getFeatures().getArray()[1].getProperties().source == 'un') {
                         action_list.add_features = true;
                     }
                 }
@@ -382,7 +413,7 @@
             var onlyOSM = true;
             var onlyKR = true;
             $.each(e.target.getFeatures().getArray(), function (index, value) {
-                if (value.getProperties().source == 'kr') {
+                if (value.getProperties().source == 'un') {
                     onlyOSM = false;
                 } else if (value.getProperties().source == 'osm') {
                     onlyKR = false;
@@ -412,13 +443,13 @@
             $("#action").css("display", "block");
             $("#action").attr("onclick", "addOsmObjects()");
             $("#action").attr("class", "alert btn btn-warning row");
-            divToggle("action", true, "Add selected KR objects to OSM dataset");
+            divToggle("action", true, "Add selected UN objects to OSM dataset");
 
         } else if (action_list.replace_features) {
             $("#action").css("display", "block");
             $("#action").attr("onclick", "replaceObjects()");
             $("#action").attr("class", "alert btn btn-warning row");
-            divToggle("action", true, "Replace OSM object <b>" + getObject(features, "osm").getId() + "</b> with KR object <b>" + getObject(features, "kr").getId() + "</b>");
+            divToggle("action", true, "Replace OSM object <b>" + getObject(features, "osm").getId() + "</b> with UN object <b>" + getObject(features, "un").getId() + "</b>");
         } else if (action_list.del_features) {
             $("#action").css("display", "block");
             $("#action").attr("onclick", "deleteObjects()");

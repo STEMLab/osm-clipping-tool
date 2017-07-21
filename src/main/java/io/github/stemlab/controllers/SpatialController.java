@@ -70,4 +70,11 @@ public class SpatialController {
         return spatialService.getSurfaceDistance(features);
     }
 
+    @RequestMapping(value = "/features", method = RequestMethod.GET)
+    public
+    @ResponseBody
+    FeatureCollection getFeatures(@RequestParam(value = "table") String table) throws Exception {
+        return new FeatureCollection(spatialService.getFeatures(table));
+    }
+
 }

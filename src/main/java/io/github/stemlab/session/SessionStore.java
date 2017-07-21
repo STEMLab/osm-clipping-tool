@@ -18,6 +18,16 @@ public class SessionStore {
     RTree<Feature, Geometry> lineTree;
     RTree<Feature, Geometry> surfaceTree;
 
+    String IP;
+
+    public String getIP() {
+        return IP;
+    }
+
+    public void setIP(String IP) {
+        this.IP = IP;
+    }
+
     public void initialize() {
         this.lineTree = RTree.star().create();
         this.surfaceTree = RTree.star().create();
