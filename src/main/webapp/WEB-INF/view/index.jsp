@@ -43,7 +43,8 @@
         <div id="matchProcessing">
             <div>
                 <span>&nbsp;To select area by drawing boxes press <code>Shift &#8679; + click</code></span></br>
-                <span>&nbsp;To select multiple features hold <code>Shift &#8679;</code></span>
+                <span>&nbsp;To select multiple features hold <code>Shift &#8679;</code></span></br>
+                <span>&nbsp;To refresh page press <code>Ctrl + R</code></span>
             </div>
         </div>
         <div id="resultContainer" class="container-fluid">
@@ -269,7 +270,7 @@
         var tables = ["road_sa", "roadl_50k", "roadl_urban"];
 
         $.get(
-            "intersects",
+            "${pageContext.request.contextPath}/intersects",
             {
                 xMin: extent[0],
                 yMin: extent[1],
@@ -295,7 +296,7 @@
         divToggles(["resultContainer"], false);
 
         $.get(
-            "intersectsProcess",
+            "${pageContext.request.contextPath}/intersectsProcess",
             function (data) {
 
                 divToggles(["matchProcessing"], false);
@@ -362,14 +363,18 @@
     function displayAll(){
         var tables = ["road_sa", "roadl_50k", "roadl_urban"];
         for(var i=0; i<tables.length; i++){
-            $.get(
-                "features",{ "table": tables[i]},
-                function (data) {
+            $.ajax({
+                type: "GET",
+                url: "${pageContext.request.contextPath}/features",
+                data: {"table": tables[i]},
+                async: true,
+                success: function (data) {
                     var features = (new ol.format.GeoJSON()).readFeatures(data);
                     vectorFeaturesSource.addFeatures(features);
-                }).fail(function () {
-                alert("fail loading: " + tables[i]);
-            })
+                }
+            }).fail(function () {
+                /*alert("fail loading: " + tables[i]);*/
+            });
         }
     }
 
@@ -466,22 +471,7 @@
             origArray.push(makeSimple(value));
         });
 
-        $.ajax({
-            type: "POST",
-            url: "${pageContext.request.contextPath}/replace",
-            data: JSON.stringify(origArray),
-            contentType: "application/json",
-            async: false,
-            success: function (respose) {
-                addIntersectsDataData(lastExtent);
-                divToggles(["action", "action_info"], false);
-                $("#action_res").attr("class", "alert alert-success row");
-                divToggle("action_res", true, "Succesfully replaced");
-            }
-        }).fail(function () {
-            $("#action_res").attr("class", "alert alert-danger row");
-            divToggle("action_res", true, "Error on replacing features");
-        });
+        f
     }
 
     function deleteObjects() {
