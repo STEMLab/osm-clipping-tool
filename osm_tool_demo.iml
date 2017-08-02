@@ -19,6 +19,13 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Maven: org.wololo:jts2geojson:0.10.0" level="project" />
+    <orderEntry type="library" name="Maven: com.vividsolutions:jts-core:1.14.0" level="project" />
+    <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.8.4" level="project" />
+    <orderEntry type="library" name="Maven: com.github.davidmoten:rtree:0.8-RC10" level="project" />
+    <orderEntry type="library" name="Maven: com.github.davidmoten:guava-mini:0.1" level="project" />
+    <orderEntry type="library" name="Maven: io.reactivex:rxjava:1.1.4" level="project" />
+    <orderEntry type="library" name="Maven: com.github.davidmoten:rxjava-extras:0.7" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: junit:junit:3.8.1" level="project" />
     <orderEntry type="library" name="Maven: org.springframework:spring-webmvc:4.3.8.RELEASE" level="project" />
     <orderEntry type="library" name="Maven: org.springframework:spring-aop:4.3.8.RELEASE" level="project" />

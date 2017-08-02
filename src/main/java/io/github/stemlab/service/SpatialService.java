@@ -1,5 +1,6 @@
 package io.github.stemlab.service;
 
+import io.github.stemlab.entity.Column;
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
 import io.github.stemlab.entity.enums.Action;
@@ -29,4 +30,9 @@ public interface SpatialService {
     List<Feature> getProcessedFeatures() throws OSMToolException;
 
     void logAction(String ip, Long osm_id, Action action);
+
+    void testConnection() throws ClassNotFoundException, SQLException;
+    public List<String> getSchemas() throws ClassNotFoundException, SQLException;
+    public List<String> getTables(String schema) throws ClassNotFoundException, SQLException;
+    public List<Column> getColumns(String schema, String table) throws ClassNotFoundException, SQLException;
 }

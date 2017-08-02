@@ -4,20 +4,23 @@ import com.github.davidmoten.rtree.Entry;
 import com.github.davidmoten.rtree.geometry.Geometries;
 import com.github.davidmoten.rtree.geometry.Geometry;
 import io.github.stemlab.dao.SpatialDao;
+import io.github.stemlab.entity.Column;
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
 import io.github.stemlab.entity.enums.Action;
 import io.github.stemlab.exception.OSMToolException;
 import io.github.stemlab.service.SpatialService;
+import io.github.stemlab.session.Database;
 import io.github.stemlab.session.SessionStore;
 import io.github.stemlab.utils.Distance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rx.Observable;
 
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,6 +45,8 @@ public class SpatialServiceImpl implements SpatialService {
 
     @Autowired
     SessionStore sessionStore;
+    @Autowired
+    Database database;
 
     public List<Feature> getIntersectsWithTopology(Envelope envelope, String... tables) throws OSMToolException, SQLException {
 
@@ -70,12 +75,11 @@ public class SpatialServiceImpl implements SpatialService {
     public List<Feature> getFeatures(String table) throws OSMToolException, SQLException {
         if (table.equals(KR_ROAD_NAME)) {
             return spatialDao.getUNFeatures(KR_ROAD_NAME);
-        }else if(table.equals(OSM_ROAD_NAME)){
+        } else if (table.equals(OSM_ROAD_NAME)) {
             return spatialDao.getOSMFeatures(OSM_ROAD_NAME);
-        }
-        else if(table.equals(KR_BUILDING_NAME)){
+        } else if (table.equals(KR_BUILDING_NAME)) {
             return spatialDao.getUNFeatures(KR_BUILDING_NAME);
-        }else{
+        } else {
             throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + table);
         }
     }
@@ -167,7 +171,7 @@ public class SpatialServiceImpl implements SpatialService {
 
     @Override
     public void logAction(String ip, Long osm_id, Action action) {
-        spatialDao.logAction(ip,osm_id,action);
+        spatialDao.logAction(ip, osm_id, action);
     }
 
     public void addToOsmDataSet(Feature[] features) throws OSMToolException {
@@ -243,4 +247,83 @@ public class SpatialServiceImpl implements SpatialService {
             throw new OSMToolException("Features size more than 2: " + features.length);
         }
     }
+
+    public void testConnection() throws ClassNotFoundException, SQLException {
+
+        Class.forName(database.getDriver());
+
+        Connection conn = DriverManager.getConnection(database.getConnection(), database.getUser(), database.getPassword());
+
+        try {
+            Statement statement = conn.createStatement();
+            ResultSet rs = statement.executeQuery("SELECT true as test");
+        } finally {
+            conn.close();
+        }
+
+    }
+
+    public List<String> getSchemas() throws ClassNotFoundException, SQLException {
+
+        List<String> schema = new ArrayList<>();
+
+        Class.forName(database.getDriver());
+
+        Connection conn = DriverManager.getConnection(database.getConnection(), database.getUser(), database.getPassword());
+
+        DatabaseMetaData meta = conn.getMetaData();
+        ResultSet schemas = meta.getSchemas();
+        while (schemas.next()) {
+            String tableSchema = schemas.getString(1); //"TABLE_CATALOG"
+            schema.add(tableSchema);
+        }
+
+        conn.close();
+
+        return schema;
+    }
+
+    public List<String> getTables(String schema) throws ClassNotFoundException, SQLException {
+
+        Class.forName(database.getDriver());
+
+        List<String> table = new ArrayList<>();
+
+        Connection conn = DriverManager.getConnection(database.getConnection(), database.getUser(), database.getPassword());
+
+        DatabaseMetaData meta = conn.getMetaData();
+        ResultSet tables = meta.getTables(null, schema, null, new String[]{"TABLE"});
+        while (tables.next()) {
+            table.add(tables.getString("TABLE_NAME"));
+        }
+
+        conn.close();
+
+        return table;
+    }
+
+    public List<Column> getColumns(String schema, String table) throws ClassNotFoundException, SQLException {
+
+        Class.forName(database.getDriver());
+
+        List<Column> columns = new ArrayList<>();
+
+        Connection conn = DriverManager.getConnection(database.getConnection(), database.getUser(), database.getPassword());
+
+        DatabaseMetaData meta = conn.getMetaData();
+        ResultSet resultSet = meta.getColumns(null, schema, table, null);
+        while (resultSet.next()) {
+            String name = resultSet.getString("COLUMN_NAME");
+            String type = resultSet.getString("TYPE_NAME");
+            int size = resultSet.getInt("COLUMN_SIZE");
+            columns.add(new Column(name, type, size));
+            System.out.println("Column name: [" + name + "]; type: [" + type + "]; size: [" + size + "]");
+        }
+
+        conn.close();
+
+        return columns;
+    }
+
+
 }

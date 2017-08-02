@@ -2,6 +2,7 @@ package io.github.stemlab.controllers;
 
 import io.github.stemlab.entity.enums.Action;
 import io.github.stemlab.service.SpatialService;
+import io.github.stemlab.session.Database;
 import io.github.stemlab.session.SessionStore;
 import io.github.stemlab.utils.IPUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,10 +24,15 @@ public class HomeController {
     @Autowired
     SessionStore sessionStore;
 
+    @Autowired
+    Database database;
+
+
     @RequestMapping(value = "/", method = RequestMethod.GET)
     public String home(HttpServletRequest request) {
         sessionStore.setIP(IPUtil.getUserIpAddress(request));
-        spatialService.logAction(sessionStore.getIP(),null, Action.VIEW);
+        spatialService.logAction(sessionStore.getIP(), null, Action.VIEW);
         return "index";
     }
+
 }

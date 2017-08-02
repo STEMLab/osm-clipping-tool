@@ -12,6 +12,7 @@
           type="text/css">
     <script src="${pageContext.request.contextPath}/resources/static/js/ol.js"></script>
     <script src="${pageContext.request.contextPath}/resources/static/js/jquery-3.2.1.min.js"></script>
+    <script src="${pageContext.request.contextPath}/resources/static/js/bootstrap.min.js"></script>
     <script src="${pageContext.request.contextPath}/resources/static/js/ol3-layerswitcher.js"></script>
 </head>
 <body>
@@ -23,21 +24,6 @@
         </div>
     </div>
     <div id="info" class="row">
-        <%--<div class="form-inline">
-            <span style="margin-left: 10px;">WMS: </span>
-            <label class="checkbox">
-                <input type="checkbox" id="inlineCheckbox1" value="roadl_50k" name="tables"> Road 50K
-            </label>
-            &lt;%&ndash;<label class="checkbox">
-                <input type="checkbox" id="inlineCheckbox2" name="tables" value="building"> Building OSM
-            </label>&ndash;%&gt;
-            <label class="checkbox">
-                <input type="checkbox" id="inlineCheckbox3" value="roadl_urban" name="tables"> Road Urban
-            </label>
-            <label class="checkbox">
-                <input type="checkbox" id="inlineCheckbox4" name="tables" value="road_sa"> Road OSM
-            </label>
-        </div>--%>
     </div>
     <div id="matchResult">
         <div id="matchProcessing">
@@ -62,6 +48,148 @@
         <div class="alert alert-success row" id="action_res"></div>
     </div>
 </div>
+<!-- Modal -->
+<div id="modal" class="modal fade" role="dialog" data-toggle="modal">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Connection to database: </h4>
+            </div>
+            <div class="modal-body">
+                <form action="" id="connectionForm">
+                    <table class="table">
+                        <tbody>
+                        <tr>
+                            <td>Host:</td>
+                            <td><input type="text" name="host" value="localhost"></td>
+                        </tr>
+                        <tr>
+                            <td>Port:</td>
+                            <td><input type="text" name="port" value="5432"></td>
+                        </tr>
+                        <tr>
+                            <td>DB name:</td>
+                            <td><input type="text" name="name" value="osm2pgsql"></td>
+                        </tr>
+                        <tr>
+                            <td>DB user:</td>
+                            <td><input type="text" name="user" value="postgres"></td>
+                        </tr>
+                        <tr>
+                            <td>Password:</td>
+                            <td><input type="password" name="password"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <button id="connectButton" type="button" class="btn btn-primary">Connect</button>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <%--// error--%>
+                <span class="alert-danger" id="connectionError"></span>
+            </div>
+        </div>
+
+    </div>
+</div>
+<div id="selectionModal" class="modal fade" role="dialog" data-toggle="modal">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Choose features : </h4>
+            </div>
+            <div class="modal-body">
+               <div class="row">
+                   <div class="col-lg-6">
+                       <table class="table">
+                           <tbody>
+                           <tr>
+                               <td>Select schema: </td>
+                           </tr>
+                           <tr>
+                               <td>
+                                   <select name="" class="selectionSchema" id="first-schema-selection">
+                                   </select>
+                               </td>
+                           </tr>
+                           <tr>
+                               <td>Select table: </td>
+                           </tr>
+                           <tr>
+                               <td>
+                                   <select name="" class="selectionTable" disabled id="first-table-selection">
+                                   </select>
+                               </td>
+                           </tr>
+                           </tbody>
+                       </table>
+                       <div class="row">
+                           <div class="col-lg-12">
+                           <table id="first-result-selection" class="table">
+                               <tbody></tbody>
+                           </table>
+                           </div>
+                       </div>
+                   </div>
+                   <div class="col-lg-6">
+                       <table class="table">
+                           <tbody>
+                           <tr>
+                               <td>Select schema: </td>
+                           </tr>
+                           <tr>
+                               <td>
+                                   <select name="" class="selectionSchema" id="second-schema-selection">
+                                   </select>
+                               </td>
+                           </tr>
+                           <tr>
+                               <td>Select table: </td>
+                           </tr>
+                           <tr>
+                               <td>
+                                   <select name="" class="selectionTable" disabled id="second-table-selection">
+                                   </select>
+                               </td>
+                           </tr>
+                           </tbody>
+                       </table>
+                       <div class="row">
+                           <div class="col-lg-12">
+                           <table id="second-result-selection" class="table">
+                            <tbody></tbody>
+                           </table>
+                           </div>
+                       </div>
+                   </div>
+               </div>
+                <div class="row">
+                    <div class="col-lg-12">
+                        <table class="table table-hover" id="relationResult" style="text-align: center">
+                            <tbody>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <%--// error--%>
+                <span class="alert-danger" id="selectionError"></span>
+                    <button style="display: none" id="saveButton" type="button" class="btn btn-primary">Save</button>
+            </div>
+        </div>
+
+    </div>
+</div>
 <script>
 
     var lastExtent;
@@ -75,15 +203,15 @@
     };
 
     /*var wmsSource = new ol.source.ImageWMS({
-        url: 'http://localhost:8081/geoserver/osm_demo/wms',
-        params: {'LAYERS': ''}
-    });*/
+     url: 'http://localhost:8081/geoserver/osm_demo/wms',
+     params: {'LAYERS': ''}
+     });*/
 
-   /* var wmsLayer = new ol.layer.Image({
-        title: 'WMS',
-        visible: true,
-        source: wmsSource
-    });*/
+    /* var wmsLayer = new ol.layer.Image({
+     title: 'WMS',
+     visible: true,
+     source: wmsSource
+     });*/
 
     var osm = new ol.layer.Tile({
         title: 'OpenStreetMap',
@@ -101,8 +229,8 @@
 
 
     /// set center of map in google's crs
-     var busanLonLat = [28.411719, 9.529499 ];
-     var busantonWebMercator = ol.proj.fromLonLat(busanLonLat);
+    var busanLonLat = [28.411719, 9.529499];
+    var busantonWebMercator = ol.proj.fromLonLat(busanLonLat);
 
     var view = new ol.View({
         center: busantonWebMercator,
@@ -360,9 +488,9 @@
 
     }
 
-    function displayAll(){
+    function displayAll() {
         var tables = ["road_sa", "roadl_50k", "roadl_urban"];
-        for(var i=0; i<tables.length; i++){
+        for (var i = 0; i < tables.length; i++) {
             $.ajax({
                 type: "GET",
                 url: "${pageContext.request.contextPath}/features",
@@ -378,8 +506,9 @@
         }
     }
 
-    $( document ).ready(function() {
-        displayAll();
+    $(document).ready(function () {
+        $('#modal').modal('show');
+        /*displayAll();*/
     });
 
     select.on('select', function (e) {
@@ -619,6 +748,167 @@
         }
     }
 
+    $('#connectButton').on('click', function (event) {
+        $.ajax({
+            type: "POST",
+            url: "${pageContext.request.contextPath}/connect",
+            data: $("#connectionForm").serializeArray(),
+            success: function (respose) {
+                $.each(respose, function(key, value) {
+                    $('.selectionSchema')
+                        .append($("<option></option>")
+                            .attr("value",value)
+                            .text(value));
+                });
+                $("#modal").modal("hide");
+                $("#selectionModal").modal("show");
+            }
+        }).fail(function (xhr, status, error) {
+            $('#connectionError').html(xhr.responseText);
+        });
+    });
+
+    $(".selectionSchema").on('change', function () {
+        var id = this.id;
+        var type;
+        if(id=="first-schema-selection"){
+            type = "first-table-selection";
+        }else if(id=="second-schema-selection"){
+            type = "second-table-selection";
+        }
+        $.ajax({
+            type: "POST",
+            url: "${pageContext.request.contextPath}/connect/tables",
+            data: {'schema': $(this).val()},
+            success: function (respose) {
+                $('#'+type)
+                    .empty();
+                $.each(respose, function(key, value) {
+                        $('#'+type)
+                            .append($("<option></option>")
+                                .attr("value",value)
+                                .text(value));
+                        $("#"+type).prop('disabled', false);
+                });
+            }
+        }).fail(function (xhr, status, error) {
+            $('#connectionError').html(xhr.responseText);
+        });
+    });
+
+    $(".selectionTable").on('change', function () {
+        var id = this.id;
+        var schema;
+        var table;
+        if(id=="first-table-selection"){
+            schema = "first-schema-selection";
+            table = "first-result-selection";
+        }else if(id=="second-table-selection"){
+            schema = "second-schema-selection";
+            table = "second-result-selection";
+        }
+        $.ajax({
+            type: "POST",
+            url: "${pageContext.request.contextPath}/connect/columns",
+            data: {'table': $(this).val(),'schema': $("#"+schema).val()},
+            success: function (respose) {
+                $('#'+table).find('tbody')
+                    .empty();
+                $.each(respose, function(key, value) {
+                        $("#"+table).find('tbody')
+                            .append($('<tr>').attr('class','clickable-row')
+                                .append($('<td>')
+                                    .append($('<span>').attr('data-name',value.name).html("<code>" + value.name + "</code>: <code>" + value.type + ((value.type!='varchar')?"":"</code>(<code>" + value.size + "</code>)")))
+                                )
+                            );
+                });
+            }
+        }).fail(function (xhr, status, error) {
+            $('#connectionError').html(xhr.responseText);
+        });
+    });
+
+    var countFirst = 0;
+    var countSecond = 0;
+    var idFirst;
+    var idSecond;
+
+    $('#first-result-selection').on('click', '.clickable-row', function(event) {
+        if($(this).hasClass('active')){
+            countFirst = 0;
+            $(this).removeClass('active');
+        } else {
+            countFirst = 1;
+            idFirst = $(this).find('span').data('name');
+            $(this).addClass('active').siblings().removeClass('active');
+        }
+        console.log("first "+ countFirst);
+            check();
+    });
+
+    $('#second-result-selection').on('click', '.clickable-row', function(event) {
+        if($(this).hasClass('active')){
+            countSecond = 0;
+            $(this).removeClass('active');
+        } else {
+            countSecond = 1;
+            idSecond = $(this).find('span').data('name');
+            $(this).addClass('active').siblings().removeClass('active');
+        }
+        console.log("second "+ countSecond)
+        check();
+    });
+
+
+    var hashmap = [];
+    var counter = 0;
+    function check(){
+        if(countFirst==1 && countSecond==1){
+            hashmap.push({id: ++counter, column: idFirst, reference: idSecond});
+            $("#relationResult").find('tbody')
+                .append($('<tr>').attr('class','clickable-row')
+                    .append($('<td>')
+                        .append($('<span>').attr('data-name-id',counter).attr('data-name-two',idSecond).html("<code>"+idFirst+"</code> &raquo; <code>" +idSecond+"</code>"))
+                    )
+                );
+            checkSize();
+        }
+    }
+
+    $('#relationResult').on('click', '.clickable-row', function(event) {
+        var id = $(this).find('span').data('name-id');
+        var removeIndex = hashmap.map(function(item) { return item.id; })
+            .indexOf(id);
+
+        ~removeIndex && hashmap.splice(removeIndex, 1);
+        $(this).remove();
+        checkSize();
+    });
+
+    function checkSize() {
+        if(hashmap.length==0){
+            /*hide*/
+            $("#saveButton").hide();
+        }else{
+            /*show*/
+            $("#saveButton").show();
+        }
+    }
+
+    $('#saveButton').on('click', function (event) {
+        var wrapper = {origin: $( "#first-table-selection" ).val(),osm: $( "#second-table-selection" ).val(), relations:hashmap};
+        $.ajax({
+            type: "POST",
+            url: "${pageContext.request.contextPath}/connect/relations",
+            contentType: 'application/json',
+            data: JSON.stringify(wrapper),
+            success: function (respose) {
+                $("#selectionModal").modal("hide");
+            }
+        }).fail(function (xhr, status, error) {
+            $('#selectionError').html(xhr.responseText);
+        });
+    });
 
 </script>
 </body>
