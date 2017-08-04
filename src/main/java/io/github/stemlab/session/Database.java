@@ -1,6 +1,5 @@
 package io.github.stemlab.session;
 
-import io.github.stemlab.entity.Relation;
 import io.github.stemlab.entity.TableWrapper;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
@@ -17,7 +16,6 @@ public class Database {
     private String port;
     private String host;
     private String name;
-    private String connection;
     private String user;
     private String password;
     private TableWrapper tableWrapper;
@@ -47,7 +45,7 @@ public class Database {
     }
 
     public String getConnection() {
-        return "jdbc:postgresql://"+this.host+":"+this.port+"/"+this.name;
+        return "jdbc:postgresql://" + this.host + ":" + this.port + "/" + this.name;
     }
 
     public String getUser() {

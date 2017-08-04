@@ -17,10 +17,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rx.Observable;
 
-import java.sql.*;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,10 +30,6 @@ import java.util.List;
 @Service
 public class SpatialServiceImpl implements SpatialService {
 
-    public static String OSM_BUILDING_NAME = "building";
-    public static String KR_BUILDING_NAME = "roadl_50k";
-    public static String KR_ROAD_NAME = "roadl_urban";
-    public static String OSM_ROAD_NAME = "road_sa";
     private static String UNDEFINED_TABLE_EXCEPTION = "UNDEFINED TABLE:";
     private static double MAX_SURFACE_DISTANCE = 50.0;
     private static double MAX_HAUSDORFF_DISTANCE = 60.0;
@@ -45,6 +40,7 @@ public class SpatialServiceImpl implements SpatialService {
 
     @Autowired
     SessionStore sessionStore;
+
     @Autowired
     Database database;
 
@@ -54,14 +50,10 @@ public class SpatialServiceImpl implements SpatialService {
 
 
         for (String table : tables) {
-            if (table.equals(OSM_BUILDING_NAME)) {
-                features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope, OSM_BUILDING_NAME));
-            } else if (table.equals(OSM_ROAD_NAME)) {
-                features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope, OSM_ROAD_NAME));
-            } else if (table.equals(KR_ROAD_NAME)) {
-                features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope, KR_ROAD_NAME));
-            } else if (table.equals(KR_BUILDING_NAME)) {
-                features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope, KR_BUILDING_NAME));
+            if (table.equals(database.getTableWrapper().getOsm())) {
+                features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope));
+            } else if (table.equals(database.getTableWrapper().getOrigin())) {
+                features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope));
             } else {
                 throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + table);
             }
@@ -73,12 +65,10 @@ public class SpatialServiceImpl implements SpatialService {
     //temporal method
     @Override
     public List<Feature> getFeatures(String table) throws OSMToolException, SQLException {
-        if (table.equals(KR_ROAD_NAME)) {
-            return spatialDao.getUNFeatures(KR_ROAD_NAME);
-        } else if (table.equals(OSM_ROAD_NAME)) {
-            return spatialDao.getOSMFeatures(OSM_ROAD_NAME);
-        } else if (table.equals(KR_BUILDING_NAME)) {
-            return spatialDao.getUNFeatures(KR_BUILDING_NAME);
+        if (table.equals(database.getTableWrapper().getOrigin())) {
+            return spatialDao.getUNFeatures();
+        } else if (table.equals(database.getTableWrapper().getOsm())) {
+            return spatialDao.getOSMFeatures();
         } else {
             throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + table);
         }
@@ -170,18 +160,15 @@ public class SpatialServiceImpl implements SpatialService {
     }
 
     @Override
-    public void logAction(String ip, Long osm_id, Action action) {
+    public void logAction(String ip, Long osm_id, Action action) throws SQLException {
         spatialDao.logAction(ip, osm_id, action);
     }
 
-    public void addToOsmDataSet(Feature[] features) throws OSMToolException {
+    public void addToOsmDataSet(Feature[] features) throws OSMToolException, SQLException {
         for (Feature feature : features) {
             if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_BUILDING_NAME)) {
-                    //temp
-                    spatialDao.addToOSM(feature.getProperties().get(TABLE_NAME_PROPERTY), OSM_ROAD_NAME, feature.getId());
-                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_ROAD_NAME)) {
-                    spatialDao.addToOSM(feature.getProperties().get(TABLE_NAME_PROPERTY), OSM_ROAD_NAME, feature.getId());
+                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOrigin())) {
+                    spatialDao.addToOSM(feature);
                 } else {
                     throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
                 }
@@ -189,34 +176,26 @@ public class SpatialServiceImpl implements SpatialService {
         }
     }
 
-    public void replaceObjects(Feature[] features) throws OSMToolException {
-        Feature featureTo = features[0];
-        Feature featureFrom = features[1];
-        for (Feature feature : features) {
-            if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_BUILDING_NAME)) {
-                    featureFrom = feature;
-                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
-                    featureTo = feature;
-                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(KR_ROAD_NAME)) {
-                    featureFrom = feature;
-                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
-                    featureTo = feature;
-                } else {
-                    throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
-                }
-            }
+    public void replaceObjects(Feature[] features) throws OSMToolException, SQLException {
+
+        if (features.length != 2) {
+            throw new OSMToolException("number of features not equal to 2");
         }
-        spatialDao.replaceObjects(featureTo.getProperties().get(TABLE_NAME_PROPERTY), featureFrom.getProperties().get(TABLE_NAME_PROPERTY), featureTo.getId(), featureFrom.getId());
+
+        if (features[0].getProperties().containsKey(TABLE_NAME_PROPERTY) && features[1].getProperties().containsKey(TABLE_NAME_PROPERTY)) {
+            if (features[0].getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOrigin())) {
+                spatialDao.replaceObjects(features[0], features[1]);
+            } else if (features[1].getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOrigin())) {
+                spatialDao.replaceObjects(features[1], features[0]);
+            } else throw new OSMToolException("Table 'from' deosn't exist");
+        } else throw new OSMToolException("table name doesn't exist");
     }
 
-    public void deleteObjects(Feature[] features) throws OSMToolException {
+    public void deleteObjects(Feature[] features) throws OSMToolException, SQLException {
         for (Feature feature : features) {
             if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_ROAD_NAME)) {
-                    spatialDao.deleteObjects(OSM_ROAD_NAME, feature.getId());
-                } else if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(OSM_BUILDING_NAME)) {
-                    spatialDao.deleteObjects(OSM_BUILDING_NAME, feature.getId());
+                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOrigin()) || feature.getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOsm())) {
+                    spatialDao.deleteObjects(feature);
                 } else {
                     throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
                 }
@@ -248,82 +227,21 @@ public class SpatialServiceImpl implements SpatialService {
         }
     }
 
-    public void testConnection() throws ClassNotFoundException, SQLException {
-
-        Class.forName(database.getDriver());
-
-        Connection conn = DriverManager.getConnection(database.getConnection(), database.getUser(), database.getPassword());
-
-        try {
-            Statement statement = conn.createStatement();
-            ResultSet rs = statement.executeQuery("SELECT true as test");
-        } finally {
-            conn.close();
-        }
-
+    public void testConnection() throws SQLException {
+        spatialDao.testConnection();
     }
 
-    public List<String> getSchemas() throws ClassNotFoundException, SQLException {
-
-        List<String> schema = new ArrayList<>();
-
-        Class.forName(database.getDriver());
-
-        Connection conn = DriverManager.getConnection(database.getConnection(), database.getUser(), database.getPassword());
-
-        DatabaseMetaData meta = conn.getMetaData();
-        ResultSet schemas = meta.getSchemas();
-        while (schemas.next()) {
-            String tableSchema = schemas.getString(1); //"TABLE_CATALOG"
-            schema.add(tableSchema);
-        }
-
-        conn.close();
-
-        return schema;
+    public List<String> getSchemas() throws SQLException {
+        return spatialDao.getSchemas();
     }
 
-    public List<String> getTables(String schema) throws ClassNotFoundException, SQLException {
-
-        Class.forName(database.getDriver());
-
-        List<String> table = new ArrayList<>();
-
-        Connection conn = DriverManager.getConnection(database.getConnection(), database.getUser(), database.getPassword());
-
-        DatabaseMetaData meta = conn.getMetaData();
-        ResultSet tables = meta.getTables(null, schema, null, new String[]{"TABLE"});
-        while (tables.next()) {
-            table.add(tables.getString("TABLE_NAME"));
-        }
-
-        conn.close();
-
-        return table;
+    public List<String> getTables(String schema) throws SQLException {
+        return spatialDao.getTables(schema);
     }
 
-    public List<Column> getColumns(String schema, String table) throws ClassNotFoundException, SQLException {
-
-        Class.forName(database.getDriver());
-
-        List<Column> columns = new ArrayList<>();
-
-        Connection conn = DriverManager.getConnection(database.getConnection(), database.getUser(), database.getPassword());
-
-        DatabaseMetaData meta = conn.getMetaData();
-        ResultSet resultSet = meta.getColumns(null, schema, table, null);
-        while (resultSet.next()) {
-            String name = resultSet.getString("COLUMN_NAME");
-            String type = resultSet.getString("TYPE_NAME");
-            int size = resultSet.getInt("COLUMN_SIZE");
-            columns.add(new Column(name, type, size));
-            System.out.println("Column name: [" + name + "]; type: [" + type + "]; size: [" + size + "]");
-        }
-
-        conn.close();
-
-        return columns;
+    public List<Column> getColumns(String schema, String table) throws SQLException {
+        return spatialDao.getColumns(schema, table);
     }
 
-
+    ;
 }

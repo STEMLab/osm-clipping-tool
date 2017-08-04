@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.SQLException;
+
 /**
  * Created by Azamat on 6/2/2017.
  */
@@ -40,19 +42,19 @@ public class SpatialController {
 
     @RequestMapping(value = "/addToOsmDataSet", method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.OK)
-    public void addOsmToDataSet(@RequestBody Feature[] features) throws OSMToolException {
+    public void addOsmToDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
         spatialService.addToOsmDataSet(features);
     }
 
     @RequestMapping(value = "/replace", method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.OK)
-    public void replaceInDataSet(@RequestBody Feature[] features) throws OSMToolException {
+    public void replaceInDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
         spatialService.replaceObjects(features);
     }
 
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     @ResponseStatus(value = HttpStatus.OK)
-    public void deleteInDataSet(@RequestBody Feature[] features) throws OSMToolException {
+    public void deleteInDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
         spatialService.deleteObjects(features);
     }
 

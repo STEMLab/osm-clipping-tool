@@ -106,71 +106,71 @@
             <div class="modal-header">
                 <h4 class="modal-title">Choose features : </h4>
             </div>
-            <div class="modal-body">
-               <div class="row">
-                   <div class="col-lg-6">
-                       <table class="table">
-                           <tbody>
-                           <tr>
-                               <td>Select schema: </td>
-                           </tr>
-                           <tr>
-                               <td>
-                                   <select name="" class="selectionSchema" id="first-schema-selection">
-                                   </select>
-                               </td>
-                           </tr>
-                           <tr>
-                               <td>Select table: </td>
-                           </tr>
-                           <tr>
-                               <td>
-                                   <select name="" class="selectionTable" disabled id="first-table-selection">
-                                   </select>
-                               </td>
-                           </tr>
-                           </tbody>
-                       </table>
-                       <div class="row">
-                           <div class="col-lg-12">
-                           <table id="first-result-selection" class="table">
-                               <tbody></tbody>
-                           </table>
-                           </div>
-                       </div>
-                   </div>
-                   <div class="col-lg-6">
-                       <table class="table">
-                           <tbody>
-                           <tr>
-                               <td>Select schema: </td>
-                           </tr>
-                           <tr>
-                               <td>
-                                   <select name="" class="selectionSchema" id="second-schema-selection">
-                                   </select>
-                               </td>
-                           </tr>
-                           <tr>
-                               <td>Select table: </td>
-                           </tr>
-                           <tr>
-                               <td>
-                                   <select name="" class="selectionTable" disabled id="second-table-selection">
-                                   </select>
-                               </td>
-                           </tr>
-                           </tbody>
-                       </table>
-                       <div class="row">
-                           <div class="col-lg-12">
-                           <table id="second-result-selection" class="table">
-                            <tbody></tbody>
-                           </table>
-                           </div>
-                       </div>
-                   </div>
-               </div>
+            <div class="modal-body" style="overflow-x: auto; max-height: 800px">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <table class="table">
+                            <tbody>
+                            <tr>
+                                <td>Select schema:</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <select name="" class="selectionSchema" id="first-schema-selection">
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Select table:</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <select name="" class="selectionTable" disabled id="first-table-selection">
+                                    </select>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <table id="first-result-selection" class="table">
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <table class="table">
+                            <tbody>
+                            <tr>
+                                <td>Select schema:</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <select name="" class="selectionSchema" id="second-schema-selection">
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Select table:</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <select name="" class="selectionTable" disabled id="second-table-selection">
+                                    </select>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <table id="second-result-selection" class="table">
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-lg-12">
                         <table class="table table-hover" id="relationResult" style="text-align: center">
@@ -184,7 +184,7 @@
             <div class="modal-footer">
                 <%--// error--%>
                 <span class="alert-danger" id="selectionError"></span>
-                    <button style="display: none" id="saveButton" type="button" class="btn btn-primary">Save</button>
+                <button style="display: none" id="saveButton" type="button" class="btn btn-primary">Save</button>
             </div>
         </div>
 
@@ -395,7 +395,7 @@
     function addIntersectsDataData(extent) {
 
 
-        var tables = ["road_sa", "roadl_50k", "roadl_urban"];
+        var tables = [$("#first-table-selection").val(), $("#second-table-selection").val()];
 
         $.get(
             "${pageContext.request.contextPath}/intersects",
@@ -489,7 +489,7 @@
     }
 
     function displayAll() {
-        var tables = ["road_sa", "roadl_50k", "roadl_urban"];
+        var tables = [$("#first-table-selection").val(), $("#second-table-selection").val()];
         for (var i = 0; i < tables.length; i++) {
             $.ajax({
                 type: "GET",
@@ -508,7 +508,6 @@
 
     $(document).ready(function () {
         $('#modal').modal('show');
-        /*displayAll();*/
     });
 
     select.on('select', function (e) {
@@ -600,7 +599,22 @@
             origArray.push(makeSimple(value));
         });
 
-        f
+        $.ajax({
+            type: "POST",
+            url: "${pageContext.request.contextPath}/replace",
+            data: JSON.stringify(origArray),
+            contentType: "application/json",
+            async: false,
+            success: function (respose) {
+                addIntersectsDataData(lastExtent);
+                divToggles(["action", "action_info"], false);
+                $("#action_res").attr("class", "alert alert-success row");
+                divToggle("action_res", true, "Succesfully replaced");
+            }
+        }).fail(function () {
+            $("#action_res").attr("class", "alert alert-danger row");
+            divToggle("action_res", true, "Error on replacing features");
+        });
     }
 
     function deleteObjects() {
@@ -698,35 +712,24 @@
         });
     }
 
-    $("input:checkbox[name=tables]").change(function () {
-        var tables = [];
-        $("input:checkbox[name=tables]:checked").each(function () {
-            tables.push("osm_demo:" + $(this).val());
-        });
-        if (tables.length == 0) {
-            wmsLayer.setVisible(false);
-        } else {
-            wmsLayer.setVisible(true);
-        }
-        var params = wmsSource.getParams();
-        params.LAYERS = tables.join();
-        wmsSource.updateParams(params);
-        wmsSource.refresh();
-    });
-
     function makeSimple(feature) {
         var simpleObject = {
             type: "Feature",
             id: feature.getId(),
             geometry: {type: feature.getGeometry().getType(), coordinates: feature.getGeometry().getCoordinates()},
-            properties: {
-                'tablename': feature.getProperties().tablename,
-                'topology_type': feature.getProperties().topology_type,
-                'name': feature.getProperties().name,
-                'source': feature.getProperties().source
-            }
+            properties: getProperties(feature)
         };
         return simpleObject; // returns cleaned up JSON
+    }
+
+    function getProperties(feature) {
+        var props = {};
+        for (var propertyName in feature.getProperties()) {
+            if (propertyName != 'geometry') {
+                props[propertyName] = feature.getProperties()[propertyName];
+            }
+        }
+        return props;
     }
 
     function divToggles(id, show) {
@@ -754,10 +757,10 @@
             url: "${pageContext.request.contextPath}/connect",
             data: $("#connectionForm").serializeArray(),
             success: function (respose) {
-                $.each(respose, function(key, value) {
+                $.each(respose, function (key, value) {
                     $('.selectionSchema')
                         .append($("<option></option>")
-                            .attr("value",value)
+                            .attr("value", value)
                             .text(value));
                 });
                 $("#modal").modal("hide");
@@ -769,72 +772,124 @@
     });
 
     $(".selectionSchema").on('change', function () {
-        var id = this.id;
+        onSchemaChange(this.id)
+    });
+
+    function onSchemaChange(id) {
         var type;
-        if(id=="first-schema-selection"){
+        if (id == "first-schema-selection") {
             type = "first-table-selection";
-        }else if(id=="second-schema-selection"){
+        } else if (id == "second-schema-selection") {
             type = "second-table-selection";
         }
         $.ajax({
             type: "POST",
             url: "${pageContext.request.contextPath}/connect/tables",
-            data: {'schema': $(this).val()},
+            data: {'schema': $("#"+id).val()},
             success: function (respose) {
-                $('#'+type)
+                $('#' + type)
                     .empty();
-                $.each(respose, function(key, value) {
-                        $('#'+type)
-                            .append($("<option></option>")
-                                .attr("value",value)
-                                .text(value));
-                        $("#"+type).prop('disabled', false);
+                $.each(respose, function (key, value) {
+                    $('#' + type)
+                        .append($("<option></option>")
+                            .attr("value", value)
+                            .text(value));
+                    $("#" + type).prop('disabled', false);
                 });
+                onTableChange(type);
             }
         }).fail(function (xhr, status, error) {
             $('#connectionError').html(xhr.responseText);
         });
-    });
+    }
+
+
+    var countFirst = 0;
+    var countSecond = 0;
+    var idFirst;
+    var idSecond;
+    var originKey;
+    var originGeom;
+    var osmKey;
+    var osmGeom;
 
     $(".selectionTable").on('change', function () {
-        var id = this.id;
+        onTableChange(this.id);
+    });
+
+    function onTableChange(id){
         var schema;
         var table;
-        if(id=="first-table-selection"){
+        if (id == "first-table-selection") {
             schema = "first-schema-selection";
             table = "first-result-selection";
-        }else if(id=="second-table-selection"){
+        } else if (id == "second-table-selection") {
             schema = "second-schema-selection";
             table = "second-result-selection";
         }
         $.ajax({
             type: "POST",
             url: "${pageContext.request.contextPath}/connect/columns",
-            data: {'table': $(this).val(),'schema': $("#"+schema).val()},
+            data: {'table': $("#"+id).val(), 'schema': $("#" + schema).val()},
             success: function (respose) {
-                $('#'+table).find('tbody')
+                $('#' + table).find('tbody')
                     .empty();
-                $.each(respose, function(key, value) {
-                        $("#"+table).find('tbody')
-                            .append($('<tr>').attr('class','clickable-row')
+                $.each(respose, function (key, value) {
+                    if (value.type == 'primary') {
+                        if (id == "first-table-selection") {
+                            originKey = value.name;
+                            $("#" + table).find('tbody')
+                                .append($('<tr>')
+                                    .append($('<td>')
+                                        .append($('<span>').attr('data-name', value.name).html("<code>" + value.name + "</code>: <strong style='color: darkred'>" + value.type + "</strong></code>"))
+                                    )
+                                );
+                        } else if (id == "second-table-selection") {
+                            osmKey = value.name;
+                            $("#" + table).find('tbody')
+                                .append($('<tr>')
+                                    .append($('<td>')
+                                        .append($('<span>').attr('data-name', value.name).html("<code>" + value.name + "</code>: <strong style='color: darkred'>" + value.type + "</strong></code>"))
+                                    )
+                                );
+                        }
+                    }
+                    else if (value.type == 'geometry') {
+                        if (id == "first-table-selection") {
+                            originGeom = value.name;
+                            $("#" + table).find('tbody')
+                                .append($('<tr>')
+                                    .append($('<td>')
+                                        .append($('<span>').attr('data-name', value.name).html("<code>" + value.name + "</code>: <strong style='color: darkred'>" + value.type + "</strong></code>"))
+                                    )
+                                );
+                        } else if (id == "second-table-selection") {
+                            osmGeom = value.name;
+                            $("#" + table).find('tbody')
+                                .append($('<tr>')
+                                    .append($('<td>')
+                                        .append($('<span>').attr('data-name', value.name).html("<code>" + value.name + "</code>: <strong style='color: darkred'>" + value.type + "</strong></code>"))
+                                    )
+                                );
+                        }
+                    } else {
+                        $("#" + table).find('tbody')
+                            .append($('<tr>').attr('class', 'clickable-row')
                                 .append($('<td>')
-                                    .append($('<span>').attr('data-name',value.name).html("<code>" + value.name + "</code>: <code>" + value.type + ((value.type!='varchar')?"":"</code>(<code>" + value.size + "</code>)")))
+                                    .append($('<span>').attr('data-name', value.name).html("<code>" + value.name + "</code>: <code>" + value.type + ((value.type != 'varchar') ? "" : "</code>(<code>" + value.size + "</code>)")))
                                 )
                             );
+                    }
                 });
             }
         }).fail(function (xhr, status, error) {
             $('#connectionError').html(xhr.responseText);
         });
-    });
+    }
 
-    var countFirst = 0;
-    var countSecond = 0;
-    var idFirst;
-    var idSecond;
 
-    $('#first-result-selection').on('click', '.clickable-row', function(event) {
-        if($(this).hasClass('active')){
+    $('#first-result-selection').on('click', '.clickable-row', function (event) {
+        if ($(this).hasClass('active')) {
             countFirst = 0;
             $(this).removeClass('active');
         } else {
@@ -842,12 +897,12 @@
             idFirst = $(this).find('span').data('name');
             $(this).addClass('active').siblings().removeClass('active');
         }
-        console.log("first "+ countFirst);
-            check();
+        console.log("first " + countFirst);
+        check();
     });
 
-    $('#second-result-selection').on('click', '.clickable-row', function(event) {
-        if($(this).hasClass('active')){
+    $('#second-result-selection').on('click', '.clickable-row', function (event) {
+        if ($(this).hasClass('active')) {
             countSecond = 0;
             $(this).removeClass('active');
         } else {
@@ -855,29 +910,31 @@
             idSecond = $(this).find('span').data('name');
             $(this).addClass('active').siblings().removeClass('active');
         }
-        console.log("second "+ countSecond)
+        console.log("second " + countSecond)
         check();
     });
 
 
     var hashmap = [];
     var counter = 0;
-    function check(){
-        if(countFirst==1 && countSecond==1){
+    function check() {
+        if (countFirst == 1 && countSecond == 1) {
             hashmap.push({id: ++counter, column: idFirst, reference: idSecond});
             $("#relationResult").find('tbody')
-                .append($('<tr>').attr('class','clickable-row')
+                .append($('<tr>').attr('class', 'clickable-row')
                     .append($('<td>')
-                        .append($('<span>').attr('data-name-id',counter).attr('data-name-two',idSecond).html("<code>"+idFirst+"</code> &raquo; <code>" +idSecond+"</code>"))
+                        .append($('<span>').attr('data-name-id', counter).attr('data-name-two', idSecond).html("<code>" + idFirst + "</code> &raquo; <code>" + idSecond + "</code>"))
                     )
                 );
             checkSize();
         }
     }
 
-    $('#relationResult').on('click', '.clickable-row', function(event) {
+    $('#relationResult').on('click', '.clickable-row', function (event) {
         var id = $(this).find('span').data('name-id');
-        var removeIndex = hashmap.map(function(item) { return item.id; })
+        var removeIndex = hashmap.map(function (item) {
+            return item.id;
+        })
             .indexOf(id);
 
         ~removeIndex && hashmap.splice(removeIndex, 1);
@@ -886,17 +943,27 @@
     });
 
     function checkSize() {
-        if(hashmap.length==0){
+        if (hashmap.length == 0) {
             /*hide*/
             $("#saveButton").hide();
-        }else{
+        } else {
             /*show*/
             $("#saveButton").show();
         }
     }
 
     $('#saveButton').on('click', function (event) {
-        var wrapper = {origin: $( "#first-table-selection" ).val(),osm: $( "#second-table-selection" ).val(), relations:hashmap};
+        var wrapper = {
+            originSchema: $("#first-schema-selection").val(),
+            osmSchema: $("#second-schema-selection").val(),
+            origin: $("#first-table-selection").val(),
+            osm: $("#second-table-selection").val(),
+            relations: hashmap,
+            originKey: originKey,
+            originGeom: originGeom,
+            osmKey: osmKey,
+            osmGeom: osmGeom
+        };
         $.ajax({
             type: "POST",
             url: "${pageContext.request.contextPath}/connect/relations",
@@ -904,6 +971,7 @@
             data: JSON.stringify(wrapper),
             success: function (respose) {
                 $("#selectionModal").modal("hide");
+                displayAll();
             }
         }).fail(function (xhr, status, error) {
             $('#selectionError').html(xhr.responseText);

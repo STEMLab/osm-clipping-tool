@@ -17,11 +17,11 @@ public interface SpatialService {
 
     List<Feature> getFeatures(String table) throws OSMToolException, SQLException;
 
-    void addToOsmDataSet(Feature[] features) throws OSMToolException;
+    void addToOsmDataSet(Feature[] features) throws OSMToolException, SQLException;
 
-    void replaceObjects(Feature[] features) throws OSMToolException;
+    void replaceObjects(Feature[] features) throws OSMToolException, SQLException;
 
-    void deleteObjects(Feature[] features) throws OSMToolException;
+    void deleteObjects(Feature[] features) throws OSMToolException, SQLException;
 
     Double getHausdorffDistance(Feature[] features) throws OSMToolException;
 
@@ -29,10 +29,13 @@ public interface SpatialService {
 
     List<Feature> getProcessedFeatures() throws OSMToolException;
 
-    void logAction(String ip, Long osm_id, Action action);
+    void logAction(String ip, Long osm_id, Action action) throws SQLException;
 
-    void testConnection() throws ClassNotFoundException, SQLException;
-    public List<String> getSchemas() throws ClassNotFoundException, SQLException;
-    public List<String> getTables(String schema) throws ClassNotFoundException, SQLException;
-    public List<Column> getColumns(String schema, String table) throws ClassNotFoundException, SQLException;
+    void testConnection() throws SQLException;
+
+    List<String> getSchemas() throws SQLException;
+
+    List<String> getTables(String schema) throws SQLException;
+
+    List<Column> getColumns(String schema, String table) throws SQLException;
 }
