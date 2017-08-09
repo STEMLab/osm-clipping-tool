@@ -19,6 +19,40 @@ public class Database {
     private String user;
     private String password;
     private TableWrapper tableWrapper;
+    private boolean isDBDefined;
+    private boolean isRelationDefined;
+
+    public boolean isDBDefined() {
+        return isDBDefined;
+    }
+
+    public void setDBDefined(boolean DBDefined) {
+        isDBDefined = DBDefined;
+    }
+
+    public boolean isRelationDefined() {
+        return isRelationDefined;
+    }
+
+    public void setRelationDefined(boolean relationDefined) {
+        isRelationDefined = relationDefined;
+    }
+
+    public void setDriver(String driver) {
+        this.driver = driver;
+    }
+
+    public String getPort() {
+        return port;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public String getName() {
+        return name;
+    }
 
     public TableWrapper getTableWrapper() {
         return tableWrapper;

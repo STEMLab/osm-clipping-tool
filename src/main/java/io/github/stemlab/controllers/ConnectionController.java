@@ -1,11 +1,9 @@
 package io.github.stemlab.controllers;
 
 import io.github.stemlab.entity.Column;
-import io.github.stemlab.entity.Relation;
 import io.github.stemlab.entity.TableWrapper;
 import io.github.stemlab.service.SpatialService;
 import io.github.stemlab.session.Database;
-import io.github.stemlab.session.SessionStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -31,32 +29,40 @@ public class ConnectionController {
     public @ResponseBody
     List<String> testConnection(@RequestParam String name, @RequestParam String port, @RequestParam String password, @RequestParam String host, @RequestParam String user) throws SQLException{
 
+        spatialService.testConnection(name, host, user, port, password);
+        database.setDBDefined(true);
+
         database.setName(name);
         database.setHost(host);
         database.setUser(user);
         database.setPort(port);
         database.setPassword(password);
 
-        spatialService.testConnection();
-
         return spatialService.getSchemas();
     }
 
-    @RequestMapping(value = "/tables", method = RequestMethod.POST)
+    @RequestMapping(value = "/tables", method = RequestMethod.GET)
     public @ResponseBody
     List<String> getTables(@RequestParam String schema) throws SQLException{
         return spatialService.getTables(schema);
     }
 
-    @RequestMapping(value = "/columns", method = RequestMethod.POST)
+    @RequestMapping(value = "/columns", method = RequestMethod.GET)
     public @ResponseBody
     List<Column> getTables(@RequestParam String schema, @RequestParam String table) throws SQLException{
         return spatialService.getColumns(schema, table);
+    }
+
+    @RequestMapping(value = "/schemas", method = RequestMethod.GET)
+    public @ResponseBody
+    List<String> getSchemas() throws SQLException{
+        return spatialService.getSchemas();
     }
 
     @RequestMapping(value = "/relations", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.OK)
     public void setRelations(@RequestBody TableWrapper wrapper) throws SQLException{
         database.setTableWrapper(wrapper);
+        database.setRelationDefined(true);
     }
 }

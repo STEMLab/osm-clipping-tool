@@ -13,13 +13,15 @@ import java.util.List;
  * Created by Azamat on 6/2/2017.
  */
 public interface SpatialService {
-    List<Feature> getIntersectsWithTopology(Envelope envelope, String... tables) throws OSMToolException, SQLException;
+    List<Feature> getIntersectsWithTopology(Envelope envelope) throws OSMToolException, SQLException;
 
-    List<Feature> getFeatures(String table) throws OSMToolException, SQLException;
+    List<Feature> getFeatures() throws OSMToolException, SQLException;
 
     void addToOsmDataSet(Feature[] features) throws OSMToolException, SQLException;
 
     void replaceObjects(Feature[] features) throws OSMToolException, SQLException;
+
+    void updateFeature(Feature feature) throws OSMToolException, SQLException;
 
     void deleteObjects(Feature[] features) throws OSMToolException, SQLException;
 
@@ -31,7 +33,7 @@ public interface SpatialService {
 
     void logAction(String ip, Long osm_id, Action action) throws SQLException;
 
-    void testConnection() throws SQLException;
+    void testConnection(String name, String host, String user, String port, String password) throws SQLException;
 
     List<String> getSchemas() throws SQLException;
 

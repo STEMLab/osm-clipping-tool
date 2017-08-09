@@ -30,8 +30,10 @@ public class FeatureSerializer extends StdSerializer<Feature> {
         jsonGenerator.writeStringField("type", feature.getType());
 
         GeoJSONWriter writer = new GeoJSONWriter();
-        GeoJSON json = writer.write(feature.getGeometry());
-        jsonGenerator.writeObjectField("geometry", json);
+        if(feature.getGeometry()!=null){
+            GeoJSON json = writer.write(feature.getGeometry());
+            jsonGenerator.writeObjectField("geometry", json);
+        }
         jsonGenerator.writeEndObject();
     }
 }

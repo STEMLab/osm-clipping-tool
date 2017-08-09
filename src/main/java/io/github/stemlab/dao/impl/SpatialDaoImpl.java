@@ -78,7 +78,7 @@ public class SpatialDaoImpl implements SpatialDao {
                 "      when (ST_Crosses(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "))) THEN 'within' " +
                 "when (ST_Overlaps(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "))) THEN 'overlaps' END AS topology_type\n" +
                 " from " + database.getTableWrapper().getOsmSchema() + "." + database.getTableWrapper().getOsm() + " where " +
-                "ST_Intersects(" + database.getTableWrapper().getOsmGeom() + ",ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "'));";
+                "ST_Intersects(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "));";
 
         try {
             dbConnection = getDBConnection();
@@ -493,7 +493,11 @@ public class SpatialDaoImpl implements SpatialDao {
             preparedStatement = dbConnection.prepareStatement(query);
 
             preparedStatement.setString(1, ip);
-            preparedStatement.setLong(2, osm_id);
+            if(osm_id==null){
+                preparedStatement.setNull(2, java.sql.Types.INTEGER);
+            }else{
+                preparedStatement.setLong(2, osm_id);
+            }
             preparedStatement.setString(3, action.toString());
 
             // execute delete SQL stetement
@@ -555,6 +559,10 @@ public class SpatialDaoImpl implements SpatialDao {
 
         }
 
+        if (srid==0){
+            throw new DatabaseException(schema+"."+table+" SRID not deinfed");
+        }
+
         return srid;
     }
 
@@ -596,8 +604,21 @@ public class SpatialDaoImpl implements SpatialDao {
         return ++id;
     }
 
-    public void testConnection() throws SQLException {
-        getDBConnection();
+    public void testConnection(String connection, String user, String password) throws SQLException {
+        try {
+            Class.forName(database.getDriver());
+        } catch (ClassNotFoundException e) {
+            System.out.println(e);
+            throw new DatabaseException("PostgreSQL driver not found");
+        }
+
+        try {
+            DriverManager.getConnection(connection, user,
+                    password);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+            throw new DatabaseException("Connection can't be established");
+        }
     }
 
     public List<String> getSchemas() throws SQLException {
@@ -687,5 +708,47 @@ public class SpatialDaoImpl implements SpatialDao {
         }
 
         return columns;
+    }
+
+    @Override
+    public void updateFeature(Feature feature) throws SQLException {
+
+        Connection dbConnection = null;
+        PreparedStatement preparedStatement = null;
+        GeoJSONWriter writer = new GeoJSONWriter();
+        int osmSRID = getTableSRID(database.getTableWrapper().getOsmSchema(), database.getTableWrapper().getOsm(), database.getTableWrapper().getOsmGeom());
+
+        final String query = "update " + database.getTableWrapper().getOsmSchema() + "." + database.getTableWrapper().getOsm() +
+                " set " + database.getTableWrapper().getOsmGeom() + " = (ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON('" + writer.write(feature.getGeometry()) + "')," + SRID + ")," + osmSRID + ")) where " + database.getTableWrapper().getOsmKey() + " = ?";
+
+
+        try {
+            dbConnection = getDBConnection();
+            preparedStatement = dbConnection.prepareStatement(query);
+
+            preparedStatement.setLong(1, feature.getId());
+
+            // execute insert SQL stetement
+            preparedStatement.executeUpdate();
+
+            spatialService.logAction(sessionStore.getIP(), feature.getId(), Action.UPDATE);
+
+            System.out.println("Record is updated in table!");
+
+        } catch (SQLException e) {
+
+            System.out.println(e.getMessage());
+
+        } finally {
+
+            if (preparedStatement != null) {
+                preparedStatement.close();
+            }
+
+            if (dbConnection != null) {
+                dbConnection.close();
+            }
+        }
+
     }
 }

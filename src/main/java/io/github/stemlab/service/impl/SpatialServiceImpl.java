@@ -44,34 +44,23 @@ public class SpatialServiceImpl implements SpatialService {
     @Autowired
     Database database;
 
-    public List<Feature> getIntersectsWithTopology(Envelope envelope, String... tables) throws OSMToolException, SQLException {
+    public List<Feature> getIntersectsWithTopology(Envelope envelope) throws OSMToolException, SQLException {
 
         List<Feature> features = new LinkedList<>();
 
-
-        for (String table : tables) {
-            if (table.equals(database.getTableWrapper().getOsm())) {
-                features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope));
-            } else if (table.equals(database.getTableWrapper().getOrigin())) {
-                features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope));
-            } else {
-                throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + table);
-            }
-        }
+        features.addAll(spatialDao.getOSMIntersectsWithTopologyType(envelope));
+        features.addAll(spatialDao.getKRIntersectsWithTopologyType(envelope));
 
         return features;
     }
 
     //temporal method
     @Override
-    public List<Feature> getFeatures(String table) throws OSMToolException, SQLException {
-        if (table.equals(database.getTableWrapper().getOrigin())) {
-            return spatialDao.getUNFeatures();
-        } else if (table.equals(database.getTableWrapper().getOsm())) {
-            return spatialDao.getOSMFeatures();
-        } else {
-            throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + table);
-        }
+    public List<Feature> getFeatures() throws OSMToolException, SQLException {
+            List<Feature> features = new LinkedList<>();
+            features.addAll(spatialDao.getUNFeatures());
+            features.addAll(spatialDao.getOSMFeatures());
+            return features;
     }
 
     public List<Feature> getProcessedFeatures() throws OSMToolException {
@@ -167,7 +156,7 @@ public class SpatialServiceImpl implements SpatialService {
     public void addToOsmDataSet(Feature[] features) throws OSMToolException, SQLException {
         for (Feature feature : features) {
             if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOrigin())) {
+                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOrigin()) && feature.getProperties().get("source").equals("un")) {
                     spatialDao.addToOSM(feature);
                 } else {
                     throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
@@ -183,12 +172,17 @@ public class SpatialServiceImpl implements SpatialService {
         }
 
         if (features[0].getProperties().containsKey(TABLE_NAME_PROPERTY) && features[1].getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-            if (features[0].getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOrigin())) {
+            if (features[0].getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOrigin()) && features[0].getProperties().get("source").equals("un")) {
                 spatialDao.replaceObjects(features[0], features[1]);
-            } else if (features[1].getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOrigin())) {
+            } else if (features[1].getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getOrigin()) && features[1].getProperties().get("source").equals("un")) {
                 spatialDao.replaceObjects(features[1], features[0]);
             } else throw new OSMToolException("Table 'from' deosn't exist");
         } else throw new OSMToolException("table name doesn't exist");
+    }
+
+    @Override
+    public void updateFeature(Feature feature) throws OSMToolException, SQLException {
+        spatialDao.updateFeature(feature);
     }
 
     public void deleteObjects(Feature[] features) throws OSMToolException, SQLException {
@@ -227,8 +221,8 @@ public class SpatialServiceImpl implements SpatialService {
         }
     }
 
-    public void testConnection() throws SQLException {
-        spatialDao.testConnection();
+    public void testConnection(String name, String host, String user, String port, String password) throws SQLException {
+        spatialDao.testConnection("jdbc:postgresql://" + host + ":" + port + "/" + name, user, password);
     }
 
     public List<String> getSchemas() throws SQLException {

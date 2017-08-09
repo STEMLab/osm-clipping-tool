@@ -29,11 +29,13 @@ public interface SpatialDao {
 
     void logAction(String ip, Long osm_id, Action action) throws SQLException;
 
-    void testConnection() throws SQLException;
+    void testConnection(String connection, String user, String password) throws SQLException;
 
     List<String> getSchemas() throws SQLException;
 
     List<String> getTables(String schema) throws SQLException;
 
     List<Column> getColumns(String schema, String table) throws SQLException;
+
+    void updateFeature(Feature feature) throws SQLException;
 }

@@ -7,6 +7,7 @@ import io.github.stemlab.session.SessionStore;
 import io.github.stemlab.utils.IPUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -30,10 +31,19 @@ public class HomeController {
 
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
-    public String home(HttpServletRequest request) throws SQLException {
+    public String home(HttpServletRequest request, Model model) throws SQLException {
         sessionStore.setIP(IPUtil.getUserIpAddress(request));
-        /*spatialService.logAction(sessionStore.getIP(), null, Action.VIEW);*/
-        return "index";
+        model.addAttribute("host",database.getHost());
+        model.addAttribute("port",database.getPort());
+        model.addAttribute("dbName",database.getName());
+        model.addAttribute("dbUser",database.getUser());
+        model.addAttribute("relations",database.getTableWrapper());
+        //temporal
+        model.addAttribute("dbPassword",database.getPassword());
+        //
+        model.addAttribute("isDB",database.isDBDefined());
+        model.addAttribute("isRelation",database.isRelationDefined());
+            return "index";
     }
 
 }
