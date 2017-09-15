@@ -9,8 +9,12 @@ import io.github.stemlab.service.SpatialService;
 import io.github.stemlab.session.SessionStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.sql.SQLException;
 
@@ -43,27 +47,27 @@ public class SpatialController {
     }
 
     @RequestMapping(value = "/addToOsmDataSet", method = RequestMethod.POST)
-    @ResponseStatus(value = HttpStatus.OK)
-    public void addOsmToDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
+    public ResponseEntity addOsmToDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
         spatialService.addToOsmDataSet(features);
+        return new ResponseEntity(HttpStatus.OK);
     }
 
     @RequestMapping(value = "/replace", method = RequestMethod.POST)
-    @ResponseStatus(value = HttpStatus.OK)
-    public void replaceInDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
+    public ResponseEntity replaceInDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
         spatialService.replaceObjects(features);
+        return new ResponseEntity(HttpStatus.OK);
     }
 
     @RequestMapping(value = "/updateFeature", method = RequestMethod.POST)
-    @ResponseStatus(value = HttpStatus.OK)
-    public void updateFeature(@RequestBody Feature feature) throws OSMToolException, SQLException {
+    public ResponseEntity updateFeature(@RequestBody Feature feature) throws OSMToolException, SQLException {
         spatialService.updateFeature(feature);
+        return new ResponseEntity(HttpStatus.OK);
     }
 
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
-    @ResponseStatus(value = HttpStatus.OK)
-    public void deleteInDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
+    public ResponseEntity deleteInDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
         spatialService.deleteObjects(features);
+        return new ResponseEntity(HttpStatus.OK);
     }
 
     @RequestMapping(value = "/hausdorffDistance", method = RequestMethod.POST)

@@ -502,6 +502,7 @@
     select.on('select', function (evt) {
         evt.selected.forEach(function (feature) {
             selectSource.push(feature);
+
         });
         evt.deselected.forEach(function (feature) {
             selectSource.remove(feature);
@@ -860,6 +861,7 @@
             contentType: "application/json",
             async: false,
             success: function (respose) {
+
                 addIntersectsDataData(lastExtent);
                 divToggles(["action", "action_info"], false);
                 $("#action_res").attr("class", "alert alert-success row");

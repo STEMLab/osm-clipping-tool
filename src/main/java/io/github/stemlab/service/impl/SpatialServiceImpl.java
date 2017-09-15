@@ -4,6 +4,7 @@ import com.github.davidmoten.rtree.Entry;
 import com.github.davidmoten.rtree.geometry.Geometries;
 import com.github.davidmoten.rtree.geometry.Geometry;
 import io.github.stemlab.dao.SpatialDao;
+import io.github.stemlab.dao.impl.SpatialDaoImpl;
 import io.github.stemlab.entity.Column;
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
@@ -13,13 +14,12 @@ import io.github.stemlab.service.SpatialService;
 import io.github.stemlab.session.Database;
 import io.github.stemlab.session.SessionStore;
 import io.github.stemlab.utils.Distance;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rx.Observable;
 
 import java.sql.SQLException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,6 +30,7 @@ import java.util.List;
 @Service
 public class SpatialServiceImpl implements SpatialService {
 
+    private static final Logger logger = Logger.getLogger(SpatialDaoImpl.class);
     private static String UNDEFINED_TABLE_EXCEPTION = "UNDEFINED TABLE:";
     private static double MAX_SURFACE_DISTANCE = 50.0;
     private static double MAX_HAUSDORFF_DISTANCE = 60.0;
@@ -57,18 +58,16 @@ public class SpatialServiceImpl implements SpatialService {
     //temporal method
     @Override
     public List<Feature> getFeatures() throws OSMToolException, SQLException {
-            List<Feature> features = new LinkedList<>();
-            features.addAll(spatialDao.getUNFeatures());
-            features.addAll(spatialDao.getOSMFeatures());
-            return features;
+        List<Feature> features = new LinkedList<>();
+        features.addAll(spatialDao.getUNFeatures());
+        features.addAll(spatialDao.getOSMFeatures());
+        return features;
     }
 
     public List<Feature> getProcessedFeatures() throws OSMToolException {
 
         List<Feature> listSurface = new LinkedList<Feature>();
         List<Feature> listLine = new LinkedList<Feature>();
-
-        Instant startSurface = Instant.now();
 
         List<Entry<Feature, Geometry>> buildings = sessionStore.getSurfaceTree().entries().filter(entry -> entry.value().getProperties().get("source").equals("un")).toList().toBlocking().single();
         List<Entry<Feature, Geometry>> roads = sessionStore.getLineTree().entries().filter(entry -> entry.value().getProperties().get("source").equals("un")).toList().toBlocking().single();
@@ -85,7 +84,6 @@ public class SpatialServiceImpl implements SpatialService {
 
             for (Entry<Feature, Geometry> entry : myList) {
                 double distance = Distance.surface(feature.value().getGeometry(), entry.value().getGeometry());
-                System.out.println("Surface distance beetween : " + feature.value().getId() + " and " + entry.value().getId() + " = " + distance);
                 if (distance > max) {
                     max = distance;
                     chosenFeature = entry.value().getId();
@@ -99,15 +97,8 @@ public class SpatialServiceImpl implements SpatialService {
             }
         }
 
-
-        Instant endSurface = Instant.now();
-
-        System.out.println("Surface time : " + Duration.between(startSurface, endSurface));
-
-
         Comparator<Feature> matchDistanceComparator = Comparator.comparingDouble(o -> Double.parseDouble(o.getProperties().get("candidateDistance")));
         listSurface.sort(matchDistanceComparator.reversed());
-        Instant startLine = Instant.now();
         for (Entry<Feature, Geometry> feature : roads) {
             com.vividsolutions.jts.geom.Envelope g = feature.value().getGeometry().getEnvelopeInternal();
             Observable<Entry<Feature, Geometry>> entries =
@@ -127,17 +118,11 @@ public class SpatialServiceImpl implements SpatialService {
             }
 
             if (chosenFeature != null) {
-                System.out.print("Match Beetween : " + feature.value().getId() + " and " + chosenFeature + ": " + String.valueOf(min));
                 feature.value().addProperty("candidate", String.valueOf(chosenFeature));
                 feature.value().addProperty("candidateDistance", String.valueOf(min));
                 listLine.add(feature.value());
             }
         }
-
-        Instant endLine = Instant.now();
-
-        System.out.println("Line time : " + Duration.between(startLine, endLine));
-
 
         listLine.sort(matchDistanceComparator.reversed());
 
@@ -149,8 +134,8 @@ public class SpatialServiceImpl implements SpatialService {
     }
 
     @Override
-    public void logAction(String ip, Long osm_id, Action action) throws SQLException {
-        spatialDao.logAction(ip, osm_id, action);
+    public void logAction(String ip, Long osm_id, Action action) {
+        logger.info("User from IP " + ip + "; ACTION: " + action + "; OBJECT_ID: " + osm_id);
     }
 
     public void addToOsmDataSet(Feature[] features) throws OSMToolException, SQLException {
@@ -237,5 +222,18 @@ public class SpatialServiceImpl implements SpatialService {
         return spatialDao.getColumns(schema, table);
     }
 
-    ;
+    public List<Column> getOSMColumnsWithoutMainAttributes() throws SQLException {
+        List<Column> columns = getColumns(database.getTableWrapper().getOsmSchema(), database.getTableWrapper().getOsm());
+        columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOsmKey()));
+        columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOsmGeom()));
+        return columns;
+    }
+
+    public List<Column> getOriginColumnsWithoutMainAttributes() throws SQLException {
+        List<Column> columns = getColumns(database.getTableWrapper().getOriginSchema(), database.getTableWrapper().getOrigin());
+        columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOriginKey()));
+        columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOriginGeom()));
+        return columns;
+    }
+
 }

@@ -3,7 +3,6 @@ package io.github.stemlab.dao;
 import io.github.stemlab.entity.Column;
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
-import io.github.stemlab.entity.enums.Action;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -26,8 +25,6 @@ public interface SpatialDao {
     void replaceObjects(Feature from, Feature to) throws SQLException;
 
     void deleteObjects(Feature feature) throws SQLException;
-
-    void logAction(String ip, Long osm_id, Action action) throws SQLException;
 
     void testConnection(String connection, String user, String password) throws SQLException;
 

@@ -5,12 +5,15 @@ import io.github.stemlab.dao.SpatialDao;
 import io.github.stemlab.entity.Column;
 import io.github.stemlab.entity.Envelope;
 import io.github.stemlab.entity.Feature;
-import io.github.stemlab.entity.Relation;
 import io.github.stemlab.entity.enums.Action;
+import io.github.stemlab.entity.enums.QueryType;
 import io.github.stemlab.exception.DatabaseException;
 import io.github.stemlab.service.SpatialService;
 import io.github.stemlab.session.Database;
 import io.github.stemlab.session.SessionStore;
+import io.github.stemlab.utils.ClauseUtil;
+import io.github.stemlab.utils.QueryBuilder;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.wololo.jts2geojson.GeoJSONReader;
@@ -28,6 +31,8 @@ import java.util.List;
 @Repository
 public class SpatialDaoImpl implements SpatialDao {
 
+
+    private static final Logger logger = Logger.getLogger(SpatialDaoImpl.class);
     private static final String TOPOLOGY_TYPE = "topology_type";
     private static final String TABLENAME = "tablename";
     private static final String SRID = "3857";
@@ -48,7 +53,7 @@ public class SpatialDaoImpl implements SpatialDao {
         try {
             Class.forName(database.getDriver());
         } catch (ClassNotFoundException e) {
-            System.out.println(e);
+            logger.error("Driver not found", e);
             throw new DatabaseException("PostgreSQL driver not found");
         }
 
@@ -57,7 +62,7 @@ public class SpatialDaoImpl implements SpatialDao {
                     database.getPassword());
             return dbConnection;
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.error("Fail on connection", e);
             throw new DatabaseException("Connection can't be established");
         }
     }
@@ -69,20 +74,19 @@ public class SpatialDaoImpl implements SpatialDao {
         List<Feature> features = new LinkedList<>();
 
         int srid = getTableSRID(database.getTableWrapper().getOsmSchema(), database.getTableWrapper().getOsm(), database.getTableWrapper().getOsmGeom());
-        List<Column> columns = getColumns(database.getTableWrapper().getOsmSchema(), database.getTableWrapper().getOsm());
-        columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOsmKey()));
-        columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOsmGeom()));
+        List<Column> columns = spatialService.getOSMColumnsWithoutMainAttributes();
 
-        String query = "select *," + database.getTableWrapper().getOsmKey() + ", '" + database.getTableWrapper().getOsm() + "' as tablename, st_asgeojson(ST_Transform (" + database.getTableWrapper().getOsmGeom() + ", " + SRID + ")) as geojson" +
-                ", case when (ST_Within(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "))) THEN 'crosses'\n" +
-                "      when (ST_Crosses(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "))) THEN 'within' " +
-                "when (ST_Overlaps(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "))) THEN 'overlaps' END AS topology_type\n" +
-                " from " + database.getTableWrapper().getOsmSchema() + "." + database.getTableWrapper().getOsm() + " where " +
-                "ST_Intersects(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "));";
+        QueryBuilder builder = QueryBuilder.newQuery().queryType(QueryType.SELECT).schema(database.getTableWrapper().getOsmSchema()).select("*", database.getTableWrapper().getOsmKey(), ClauseUtil.alias("'" + database.getTableWrapper().getOsm() + "'", "tablename"),
+                ClauseUtil.alias("st_asgeojson(ST_Transform (" + database.getTableWrapper().getOsmGeom() + ", " + SRID + "))", "geojson")
+        ).caseWhenThen("(ST_Within(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + ")))", "'within'")
+                .caseWhenThen("(ST_Crosses(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + ")))", "'crosses'")
+                .caseWhenThen("(ST_Overlaps(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + ")))", "'overlaps'")
+                .caseEndAs("topology_type")
+                .from(database.getTableWrapper().getOsm()).where("ST_Intersects(" + database.getTableWrapper().getOsmGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "))").getQuery();
 
         try {
             dbConnection = getDBConnection();
-            preparedStatement = dbConnection.prepareStatement(query);
+            preparedStatement = dbConnection.prepareStatement(builder.toString());
 
             for (int i = 1; i <= 16; i = i + 4) {
                 preparedStatement.setDouble(i, envelope.getxMin());
@@ -90,8 +94,6 @@ public class SpatialDaoImpl implements SpatialDao {
                 preparedStatement.setDouble((i) + 2, envelope.getxMax());
                 preparedStatement.setDouble((i) + 3, envelope.getyMax());
             }
-
-            System.out.println(query);
 
             // execute select SQL stetement
             ResultSet rs = preparedStatement.executeQuery();
@@ -126,9 +128,8 @@ public class SpatialDaoImpl implements SpatialDao {
 
 
         } catch (SQLException e) {
-
-            System.out.println(e.getMessage());
-
+            logger.error("Exception on getOSMIntersectsWithTopologyType() ", e);
+            throw new DatabaseException("Exception on getting intersected objects");
         } finally {
 
             if (preparedStatement != null) {
@@ -152,20 +153,19 @@ public class SpatialDaoImpl implements SpatialDao {
         List<Feature> features = new LinkedList<>();
 
         int srid = getTableSRID(database.getTableWrapper().getOriginSchema(), database.getTableWrapper().getOrigin(), database.getTableWrapper().getOriginGeom());
-        List<Column> columns = getColumns(database.getTableWrapper().getOriginSchema(), database.getTableWrapper().getOrigin());
-        columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOriginKey()));
-        columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOriginGeom()));
+        List<Column> columns = spatialService.getOriginColumnsWithoutMainAttributes();
 
-        String query = "select *, " + database.getTableWrapper().getOriginKey() + ",'" + database.getTableWrapper().getOrigin() + "' as tablename, st_asgeojson(ST_Transform (" + database.getTableWrapper().getOriginGeom() + ", " + SRID + ")) as geojson, " +
-                "case when (ST_Within(" + database.getTableWrapper().getOriginGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "))) THEN 'crosses'\n" +
-                "      when (ST_Crosses(" + database.getTableWrapper().getOriginGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "))) THEN 'within' " +
-                "when (ST_Overlaps(" + database.getTableWrapper().getOriginGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "))) THEN 'overlaps' END AS topology_type\n" +
-                " from " + database.getTableWrapper().getOriginSchema() + "." + database.getTableWrapper().getOrigin() + " where " +
-                "ST_Intersects(" + database.getTableWrapper().getOriginGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "));";
+        QueryBuilder builder = QueryBuilder.newQuery().queryType(QueryType.SELECT).schema(database.getTableWrapper().getOriginSchema()).select("*", database.getTableWrapper().getOriginKey(), ClauseUtil.alias("'" + database.getTableWrapper().getOrigin() + "'", "tablename"),
+                ClauseUtil.alias("st_asgeojson(ST_Transform (" + database.getTableWrapper().getOriginGeom() + ", " + SRID + "))", "geojson")
+        ).caseWhenThen("(ST_Within(" + database.getTableWrapper().getOriginGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + ")))", "'within'")
+                .caseWhenThen("(ST_Crosses(" + database.getTableWrapper().getOriginGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + ")))", "'crosses'")
+                .caseWhenThen("(ST_Overlaps(" + database.getTableWrapper().getOriginGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + ")))", "'overlaps'")
+                .caseEndAs("topology_type")
+                .from(database.getTableWrapper().getOrigin()).where("ST_Intersects(" + database.getTableWrapper().getOriginGeom() + ",ST_Transform(ST_SetSRID(ST_MakeEnvelope(?,?,?,?), '" + SRID + "')," + srid + "))").getQuery();
 
         try {
             dbConnection = getDBConnection();
-            preparedStatement = dbConnection.prepareStatement(query);
+            preparedStatement = dbConnection.prepareStatement(builder.toString());
 
             for (int i = 1; i <= 16; i = i + 4) {
                 preparedStatement.setDouble(i, envelope.getxMin());
@@ -173,9 +173,6 @@ public class SpatialDaoImpl implements SpatialDao {
                 preparedStatement.setDouble((i) + 2, envelope.getxMax());
                 preparedStatement.setDouble((i) + 3, envelope.getyMax());
             }
-
-            System.out.println(query);
-
             // execute select SQL stetement
             ResultSet rs = preparedStatement.executeQuery();
 
@@ -210,7 +207,8 @@ public class SpatialDaoImpl implements SpatialDao {
 
         } catch (SQLException e) {
 
-            System.out.println(e.getMessage());
+            logger.error("Exception on getKRIntersectsWithTopologyType() ", e);
+            throw new DatabaseException("Exception on getting intersected objects");
 
         } finally {
 
@@ -235,19 +233,17 @@ public class SpatialDaoImpl implements SpatialDao {
         PreparedStatement preparedStatement = null;
         List<Feature> features = new LinkedList<>();
 
-        String query = "select *, '" + database.getTableWrapper().getOrigin() + "' as tablename, st_asgeojson(ST_Transform (" + database.getTableWrapper().getOriginGeom() + ", " + SRID + ")) as geojson from " + database.getTableWrapper().getOriginSchema() + "." + database.getTableWrapper().getOrigin() + ";";
+        QueryBuilder builder = QueryBuilder.newQuery().queryType(QueryType.SELECT).schema(database.getTableWrapper().getOriginSchema()).select("*", database.getTableWrapper().getOriginKey(), ClauseUtil.alias("'" + database.getTableWrapper().getOrigin() + "'", "tablename"),
+                ClauseUtil.alias("st_asgeojson(ST_Transform (" + database.getTableWrapper().getOriginGeom() + ", " + SRID + "))", "geojson")
+        ).from(database.getTableWrapper().getOrigin()).getQuery();
 
         try {
             dbConnection = getDBConnection();
-            preparedStatement = dbConnection.prepareStatement(query);
-
-            System.out.println(query);
+            preparedStatement = dbConnection.prepareStatement(builder.toString());
 
             // execute select SQL stetement
             ResultSet rs = preparedStatement.executeQuery();
-            List<Column> columns = getColumns(database.getTableWrapper().getOriginSchema(), database.getTableWrapper().getOrigin());
-            columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOriginKey()));
-            columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOriginGeom()));
+            List<Column> columns = spatialService.getOriginColumnsWithoutMainAttributes();
 
             while (rs.next()) {
 
@@ -273,7 +269,8 @@ public class SpatialDaoImpl implements SpatialDao {
 
         } catch (SQLException e) {
 
-            System.out.println(e.getMessage());
+            logger.error("Exception on getUNFeatures() ", e);
+            throw new DatabaseException("Exception on getting objects from DB");
 
         } finally {
 
@@ -297,19 +294,17 @@ public class SpatialDaoImpl implements SpatialDao {
         PreparedStatement preparedStatement = null;
         List<Feature> features = new LinkedList<>();
 
-        String query = "select *, '" + database.getTableWrapper().getOsm() + "' as tablename, st_asgeojson(ST_Transform (" + database.getTableWrapper().getOsmGeom() + ", " + SRID + ")) as geojson from " + database.getTableWrapper().getOsmSchema() + "." + database.getTableWrapper().getOsm() + ";";
+        QueryBuilder builder = QueryBuilder.newQuery().queryType(QueryType.SELECT).schema(database.getTableWrapper().getOsmSchema()).select("*", database.getTableWrapper().getOsmKey(), ClauseUtil.alias("'" + database.getTableWrapper().getOsm() + "'", "tablename"),
+                ClauseUtil.alias("st_asgeojson(ST_Transform (" + database.getTableWrapper().getOsmGeom() + ", " + SRID + "))", "geojson")
+        ).from(database.getTableWrapper().getOsm()).getQuery();
 
         try {
             dbConnection = getDBConnection();
-            preparedStatement = dbConnection.prepareStatement(query);
-
-            System.out.println(query);
+            preparedStatement = dbConnection.prepareStatement(builder.toString());
 
             // execute select SQL stetement
             ResultSet rs = preparedStatement.executeQuery();
-            List<Column> columns = getColumns(database.getTableWrapper().getOsmSchema(), database.getTableWrapper().getOsm());
-            columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOsmKey()));
-            columns.removeIf(p -> p.getName().equals(database.getTableWrapper().getOsmGeom()));
+            List<Column> columns = spatialService.getOSMColumnsWithoutMainAttributes();
 
             while (rs.next()) {
 
@@ -335,7 +330,8 @@ public class SpatialDaoImpl implements SpatialDao {
 
         } catch (SQLException e) {
 
-            System.out.println(e.getMessage());
+            logger.error("Exception on getOSMFeatures() ", e);
+            throw new DatabaseException("Exception on getting objects from DB");
 
         } finally {
 
@@ -358,34 +354,27 @@ public class SpatialDaoImpl implements SpatialDao {
         PreparedStatement preparedStatement = null;
         GeoJSONWriter writer = new GeoJSONWriter();
         int osmSRID = getTableSRID(database.getTableWrapper().getOsmSchema(), database.getTableWrapper().getOsm(), database.getTableWrapper().getOsmGeom());
+        Long key = generateKey();
 
-        String insertColumns = "";
-        String insertValues = "";
-        for (Relation relation : database.getTableWrapper().getRelations()) {
-            insertColumns += " , " + relation.getReference();//kr
-            insertValues += " , '" + feature.getProperties().get(relation.getColumn()) + "' ";
-            relation.getColumn(); //osm
-        }
-
-        final String query = "insert into " + database.getTableWrapper().getOsmSchema() + "." + database.getTableWrapper().getOsm() + "(" + database.getTableWrapper().getOsmKey() + ", " + database.getTableWrapper().getOsmGeom() + insertColumns + ")\n" +
-                "VALUES ('" + generateKey() + "',(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON('" + writer.write(feature.getGeometry()) + "')," + SRID + ")," + osmSRID + ")) " + insertValues + ");";
+        QueryBuilder builder = QueryBuilder.newQuery().queryType(QueryType.INSERT).schema(database.getTableWrapper().getOsmSchema()).insert(database.getTableWrapper().getOsm())
+                .values(database.getTableWrapper().getOsmKey(), key)
+                .values(database.getTableWrapper().getOsmGeom(), "(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON('" + writer.write(feature.getGeometry()) + "')," + SRID + ")," + osmSRID + "))")
+                .valuesArrayFromFeature(database.getTableWrapper().getRelations(), feature)
+                .getQuery();
 
         try {
             dbConnection = getDBConnection();
-            preparedStatement = dbConnection.prepareStatement(query);
+            preparedStatement = dbConnection.prepareStatement(builder.toString());
 
             // execute insert SQL stetement
             preparedStatement.executeUpdate();
 
-
-            spatialService.logAction(sessionStore.getIP(), generateKey(), Action.ADD);
-
-
-            System.out.println("Record is inserted into DBUSER table!");
+            spatialService.logAction(sessionStore.getIP(), key, Action.ADD);
 
         } catch (SQLException e) {
 
-            System.out.println(e.getMessage());
+            logger.error("Exception on addToOSM() ", e);
+            throw new DatabaseException("Exception on adding object into DB");
 
         } finally {
 
@@ -406,18 +395,14 @@ public class SpatialDaoImpl implements SpatialDao {
         GeoJSONWriter writer = new GeoJSONWriter();
         int osmSRID = getTableSRID(database.getTableWrapper().getOsmSchema(), database.getTableWrapper().getOsm(), database.getTableWrapper().getOsmGeom());
 
-
-        String setStatement = "";
-        for (Relation relation : database.getTableWrapper().getRelations()) {
-            setStatement += " , " + relation.getReference() + " = '" + from.getProperties().get(relation.getColumn()) + "'";
-        }
-
-        final String query = "update " + database.getTableWrapper().getOsmSchema() + "." + database.getTableWrapper().getOsm() +
-                " set " + database.getTableWrapper().getOsmGeom() + " = (ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON('" + writer.write(from.getGeometry()) + "')," + SRID + ")," + osmSRID + ")) " + setStatement + " where " + database.getTableWrapper().getOsmKey() + " = ?";
+        QueryBuilder builder = QueryBuilder.newQuery().queryType(QueryType.UPDATE).schema(database.getTableWrapper().getOsmSchema()).update(database.getTableWrapper().getOsm())
+                .set(database.getTableWrapper().getOsmGeom(), "(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON('" + writer.write(from.getGeometry()) + "')," + SRID + ")," + osmSRID + "))")
+                .setArrayFromFeature(database.getTableWrapper().getRelations(), from)
+                .where(ClauseUtil.equal(database.getTableWrapper().getOsmKey(), "?")).getQuery();
 
         try {
             dbConnection = getDBConnection();
-            preparedStatement = dbConnection.prepareStatement(query);
+            preparedStatement = dbConnection.prepareStatement(builder.toString());
 
             preparedStatement.setLong(1, to.getId());
 
@@ -426,11 +411,10 @@ public class SpatialDaoImpl implements SpatialDao {
 
             spatialService.logAction(sessionStore.getIP(), to.getId(), Action.REPLACE);
 
-            System.out.println("Record is replaced in table!");
-
         } catch (SQLException e) {
 
-            System.out.println(e.getMessage());
+            logger.error("Exception on replaceObjects() ", e);
+            throw new DatabaseException("Exception on replacing object in DB");
 
         } finally {
 
@@ -449,11 +433,11 @@ public class SpatialDaoImpl implements SpatialDao {
         Connection dbConnection = null;
         PreparedStatement preparedStatement = null;
 
-        final String query = "DELETE from " + database.getTableWrapper().getOsmSchema() + "." + database.getTableWrapper().getOsm() + " where " + database.getTableWrapper().getOsmKey() + " = ?";
+        QueryBuilder builder = QueryBuilder.newQuery().queryType(QueryType.DELETE).schema(database.getTableWrapper().getOsmSchema()).delete(database.getTableWrapper().getOsm()).where(ClauseUtil.equal(database.getTableWrapper().getOsmKey(), "?")).getQuery();
 
         try {
             dbConnection = getDBConnection();
-            preparedStatement = dbConnection.prepareStatement(query);
+            preparedStatement = dbConnection.prepareStatement(builder.toString());
 
             preparedStatement.setLong(1, feature.getId());
 
@@ -462,49 +446,10 @@ public class SpatialDaoImpl implements SpatialDao {
 
             spatialService.logAction(sessionStore.getIP(), feature.getId(), Action.DELETE);
 
-            System.out.println("Record is deleted!");
-
         } catch (SQLException e) {
 
-            System.out.println(e.getMessage());
-
-        } finally {
-
-            if (preparedStatement != null) {
-                preparedStatement.close();
-            }
-
-            if (dbConnection != null) {
-                dbConnection.close();
-            }
-        }
-    }
-
-    @Override
-    public void logAction(String ip, Long osm_id, Action action) throws SQLException {
-
-        Connection dbConnection = null;
-        PreparedStatement preparedStatement = null;
-
-        final String query = "INSERT INTO log(ip,osm_id,action) values(?,?,?)";
-
-        try {
-            dbConnection = getDBConnection();
-            preparedStatement = dbConnection.prepareStatement(query);
-
-            preparedStatement.setString(1, ip);
-            if(osm_id==null){
-                preparedStatement.setNull(2, java.sql.Types.INTEGER);
-            }else{
-                preparedStatement.setLong(2, osm_id);
-            }
-            preparedStatement.setString(3, action.toString());
-
-            // execute delete SQL stetement
-            preparedStatement.executeUpdate();
-        } catch (SQLException e) {
-
-            System.out.println(e.getMessage());
+            logger.error("Exception on deleteObjects() ", e);
+            throw new DatabaseException("Exception on deleting object in DB");
 
         } finally {
 
@@ -545,7 +490,8 @@ public class SpatialDaoImpl implements SpatialDao {
 
         } catch (SQLException e) {
 
-            System.out.println(e.getMessage());
+            logger.error("Exception on getTableSRID() ", e);
+            throw new DatabaseException("Exception on getting object SRID");
 
         } finally {
 
@@ -559,8 +505,8 @@ public class SpatialDaoImpl implements SpatialDao {
 
         }
 
-        if (srid==0){
-            throw new DatabaseException(schema+"."+table+" SRID not deinfed");
+        if (srid == 0) {
+            throw new DatabaseException(schema + "." + table + " SRID not deinfed");
         }
 
         return srid;
@@ -568,7 +514,7 @@ public class SpatialDaoImpl implements SpatialDao {
 
     private Long generateKey() throws SQLException {
 
-        final String query = "select max(" + database.getTableWrapper().getOsmKey() + ") as id from " + database.getTableWrapper().getOsmSchema() + "." + database.getTableWrapper().getOsm() + ";";
+        QueryBuilder builder = QueryBuilder.newQuery().queryType(QueryType.SELECT).schema(database.getTableWrapper().getOsmSchema()).select(ClauseUtil.alias("max(" + database.getTableWrapper().getOsmKey() + ")", "id")).from(database.getTableWrapper().getOsm()).getQuery();
 
         Connection dbConnection = null;
         PreparedStatement preparedStatement = null;
@@ -576,7 +522,7 @@ public class SpatialDaoImpl implements SpatialDao {
 
         try {
             dbConnection = getDBConnection();
-            preparedStatement = dbConnection.prepareStatement(query);
+            preparedStatement = dbConnection.prepareStatement(builder.toString());
 
             ResultSet rs = preparedStatement.executeQuery();
 
@@ -587,7 +533,8 @@ public class SpatialDaoImpl implements SpatialDao {
 
         } catch (SQLException e) {
 
-            System.out.println(e.getMessage());
+            logger.error("Exception on generateKey() ", e);
+            throw new DatabaseException("Exception on generating key for " + database.getTableWrapper().getOsm());
 
         } finally {
 
@@ -608,7 +555,7 @@ public class SpatialDaoImpl implements SpatialDao {
         try {
             Class.forName(database.getDriver());
         } catch (ClassNotFoundException e) {
-            System.out.println(e);
+            logger.error("Driver not found ", e);
             throw new DatabaseException("PostgreSQL driver not found");
         }
 
@@ -616,7 +563,7 @@ public class SpatialDaoImpl implements SpatialDao {
             DriverManager.getConnection(connection, user,
                     password);
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.error("Connection not established ", e);
             throw new DatabaseException("Connection can't be established");
         }
     }
@@ -636,7 +583,8 @@ public class SpatialDaoImpl implements SpatialDao {
                 schema.add(tableSchema);
             }
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.error("Exception on getSchemas()", e);
+            throw new DatabaseException("Error on getting schemas from DB");
         } finally {
             if (conn != null) {
                 conn.close();
@@ -661,7 +609,8 @@ public class SpatialDaoImpl implements SpatialDao {
                 table.add(tables.getString("TABLE_NAME"));
             }
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.error("Exception on getTables()", e);
+            throw new DatabaseException("Error on getting tables list from DB");
         } finally {
             if (conn != null) {
                 conn.close();
@@ -697,10 +646,10 @@ public class SpatialDaoImpl implements SpatialDao {
                 } else {
                     columns.add(new Column(name, type, size));
                 }
-                System.out.println("Column name: [" + name + "]; type: [" + type + "]; size: [" + size + "]");
             }
         } catch (SQLException e) {
-            System.out.println(e.getMessage());
+            logger.error("Exception on getColumns()", e);
+            throw new DatabaseException("Error on getting columns of table");
         } finally {
             if (conn != null) {
                 conn.close();
@@ -718,13 +667,13 @@ public class SpatialDaoImpl implements SpatialDao {
         GeoJSONWriter writer = new GeoJSONWriter();
         int osmSRID = getTableSRID(database.getTableWrapper().getOsmSchema(), database.getTableWrapper().getOsm(), database.getTableWrapper().getOsmGeom());
 
-        final String query = "update " + database.getTableWrapper().getOsmSchema() + "." + database.getTableWrapper().getOsm() +
-                " set " + database.getTableWrapper().getOsmGeom() + " = (ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON('" + writer.write(feature.getGeometry()) + "')," + SRID + ")," + osmSRID + ")) where " + database.getTableWrapper().getOsmKey() + " = ?";
-
+        QueryBuilder builder = QueryBuilder.newQuery().queryType(QueryType.UPDATE).schema(database.getTableWrapper().getOsmSchema()).update(database.getTableWrapper().getOsm()).
+                set(database.getTableWrapper().getOsmGeom(), "(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON('" + writer.write(feature.getGeometry()) + "')," + SRID + ")," + osmSRID + "))").
+                where(ClauseUtil.equal(database.getTableWrapper().getOsmKey(), "?")).getQuery();
 
         try {
             dbConnection = getDBConnection();
-            preparedStatement = dbConnection.prepareStatement(query);
+            preparedStatement = dbConnection.prepareStatement(builder.toString());
 
             preparedStatement.setLong(1, feature.getId());
 
@@ -733,11 +682,10 @@ public class SpatialDaoImpl implements SpatialDao {
 
             spatialService.logAction(sessionStore.getIP(), feature.getId(), Action.UPDATE);
 
-            System.out.println("Record is updated in table!");
-
         } catch (SQLException e) {
 
-            System.out.println(e.getMessage());
+            logger.error("Exception on updateFeature()", e);
+            throw new DatabaseException("Error on updating geometry of object");
 
         } finally {
 

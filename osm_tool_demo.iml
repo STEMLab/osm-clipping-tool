@@ -41,6 +41,7 @@
     <orderEntry type="library" name="Maven: org.wololo:jts2geojson:0.10.0" level="project" />
     <orderEntry type="library" name="Maven: com.vividsolutions:jts-core:1.14.0" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.8.4" level="project" />
+    <orderEntry type="library" name="Maven: log4j:log4j:1.2.17" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.8.8" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-core:2.8.8" level="project" />
     <orderEntry type="library" name="Maven: com.github.davidmoten:rtree:0.8-RC10" level="project" />

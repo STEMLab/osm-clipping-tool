@@ -31,7 +31,7 @@ public interface SpatialService {
 
     List<Feature> getProcessedFeatures() throws OSMToolException;
 
-    void logAction(String ip, Long osm_id, Action action) throws SQLException;
+    void logAction(String ip, Long osm_id, Action action);
 
     void testConnection(String name, String host, String user, String port, String password) throws SQLException;
 
@@ -40,4 +40,8 @@ public interface SpatialService {
     List<String> getTables(String schema) throws SQLException;
 
     List<Column> getColumns(String schema, String table) throws SQLException;
+
+    List<Column> getOSMColumnsWithoutMainAttributes() throws SQLException;
+
+    List<Column> getOriginColumnsWithoutMainAttributes() throws SQLException;
 }
