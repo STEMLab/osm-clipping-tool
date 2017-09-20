@@ -3,28 +3,29 @@ package io.github.stemlab.entity;
 import java.io.Serializable;
 
 /**
- * Created by Azamat on 8/2/2017.
+ * @brief Define relation between source and target tables columns
+ * @author Bolat Azamat
  */
 public class Relation implements Serializable{
 
-    private String column;
-    private String reference;
+    private String sourceColumn;
+    private String targetColumn;
 
     public Relation(){}
 
-    public String getColumn() {
-        return column;
+    public String getSourceColumn() {
+        return sourceColumn;
     }
 
-    public void setColumn(String column) {
-        this.column = column;
+    public void setSourceColumn(String sourceColumn) {
+        this.sourceColumn = sourceColumn;
     }
 
-    public String getReference() {
-        return reference;
+    public String getTargetColumn() {
+        return targetColumn;
     }
 
-    public void setReference(String reference) {
-        this.reference = reference;
+    public void setTargetColumn(String targetColumn) {
+        this.targetColumn = targetColumn;
     }
 }

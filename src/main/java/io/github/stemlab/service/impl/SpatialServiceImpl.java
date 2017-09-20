@@ -236,4 +236,14 @@ public class SpatialServiceImpl implements SpatialService {
         return columns;
     }
 
+    @Override
+    public Long generateFeatureId() throws SQLException {
+        return spatialDao.generateFeatureId();
+    }
+
+    @Override
+    public int getSRID(String schema, String table, String column) throws SQLException {
+        return spatialDao.getSRID(schema,table,column);
+    }
+
 }

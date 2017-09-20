@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.sql.SQLException;
 
 /**
- * Created by Azamat on 6/2/2017.
+ * @brief controller to work with all special operations
+ *
+ * @author Bolat Azamat
  */
 @Controller
 public class SpatialController {
@@ -30,60 +32,136 @@ public class SpatialController {
     @Autowired
     SessionStore sessionStore;
 
+    /**
+     * Get all intersected with bbox features;
+     * This method also will log box view action @see {@link Action}
+     *
+     * @param envelope coordinates of bounding box (square) drawn on front-end
+     * @return collection of intersected features
+     * @throws OSMToolException
+     * @throws SQLException
+     * @see Envelope
+     * @see SessionStore
+     * @see FeatureCollection
+     */
     @RequestMapping(value = "/intersects", method = RequestMethod.GET)
     public
     @ResponseBody
-    FeatureCollection getIntersects(Envelope envelope) throws Exception {
+    FeatureCollection getIntersects(Envelope envelope) throws OSMToolException, SQLException {
         sessionStore.initialize();
         spatialService.logAction(sessionStore.getIP(), null, Action.BOX_VIEW);
         return new FeatureCollection(spatialService.getIntersectsWithTopology(envelope));
     }
 
-    @RequestMapping(value = "/intersectsProcess", method = RequestMethod.GET)
+    /**
+     * Get processed features (matched) @see {@link SpatialService#getProcessedFeatures()}
+     *
+     * @return collection of matched geometry features
+     * @throws OSMToolException
+     */
+    @RequestMapping(value = "/processed_intersects", method = RequestMethod.GET)
     public
     @ResponseBody
-    FeatureCollection getIntersectsProcess() throws Exception {
+    FeatureCollection getProcessedIntersects() throws OSMToolException {
         return new FeatureCollection(spatialService.getProcessedFeatures());
     }
 
-    @RequestMapping(value = "/addToOsmDataSet", method = RequestMethod.POST)
-    public ResponseEntity addOsmToDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
+    /**
+     * Add objects from one table to another
+     *
+     * @param features
+     * @return http status 200 on success
+     * @throws OSMToolException
+     * @throws SQLException
+     * @see Feature
+     */
+    @RequestMapping(value = "/add_to_dataset", method = RequestMethod.POST)
+    public ResponseEntity addToDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
         spatialService.addToOsmDataSet(features);
         return new ResponseEntity(HttpStatus.OK);
     }
 
+    /**
+     * Replace objects in another table
+     *
+     * @param features
+     * @return http status 200 on success
+     * @throws OSMToolException
+     * @throws SQLException
+     * @see Feature
+     */
     @RequestMapping(value = "/replace", method = RequestMethod.POST)
     public ResponseEntity replaceInDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
         spatialService.replaceObjects(features);
         return new ResponseEntity(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/updateFeature", method = RequestMethod.POST)
+    /**
+     * Update attributes of feature in table
+     *
+     * @param feature
+     * @return https status 200 on success
+     * @throws OSMToolException
+     * @throws SQLException
+     * @see Feature
+     */
+    @RequestMapping(value = "/update_feature", method = RequestMethod.POST)
     public ResponseEntity updateFeature(@RequestBody Feature feature) throws OSMToolException, SQLException {
         spatialService.updateFeature(feature);
         return new ResponseEntity(HttpStatus.OK);
     }
 
+    /**
+     * Delete objects from table
+     *
+     * @param features
+     * @return http status 200 on success
+     * @throws OSMToolException
+     * @throws SQLException
+     * @see Feature
+     */
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     public ResponseEntity deleteInDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
         spatialService.deleteObjects(features);
         return new ResponseEntity(HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/hausdorffDistance", method = RequestMethod.POST)
+    /**
+     * Get hausdorff distance between two features @see {@link SpatialService#getHausdorffDistance(Feature[])}
+     *
+     * @param features
+     * @return distance in ratio
+     * @throws OSMToolException
+     */
+    @RequestMapping(value = "/hausdorff_distance", method = RequestMethod.POST)
     public
     @ResponseBody
-    Double hausdorffDistance(@RequestBody Feature[] features) throws Exception {
+    Double hausdorffDistance(@RequestBody Feature[] features) throws OSMToolException {
         return spatialService.getHausdorffDistance(features);
     }
 
-    @RequestMapping(value = "/surfaceDistance", method = RequestMethod.POST)
+    /**
+     * Get surface distance between two features @see {@link SpatialService#getSurfaceDistance(Feature[])}
+     *
+     * @param features
+     * @return distance in ratio
+     * @throws OSMToolException
+     */
+    @RequestMapping(value = "/surface_distance", method = RequestMethod.POST)
     public
     @ResponseBody
-    Double surfaceDistance(@RequestBody Feature[] features) throws Exception {
+    Double surfaceDistance(@RequestBody Feature[] features) throws OSMToolException {
         return spatialService.getSurfaceDistance(features);
     }
 
+    /**
+     * Get all features from both tables
+     *
+     * @return collection of features
+     * @throws Exception
+     * @see Feature
+     * @see FeatureCollection
+     */
     @RequestMapping(value = "/features", method = RequestMethod.GET)
     public
     @ResponseBody

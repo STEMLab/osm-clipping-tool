@@ -3,85 +3,92 @@ package io.github.stemlab.entity;
 import java.io.Serializable;
 
 /**
- * Created by Azamat on 8/2/2017.
+ * @brief Wrapper class for two defined tables and their relations
+ *  To move data between two tables, define first one as 'source' and second tables as 'target'.
+ *  So, data moves from 'source' to 'target'
+ * @author Bolat Azamat
  */
 public class TableWrapper implements Serializable {
 
-    private String origin;
-    private String originKey;
-    private String originGeom;
-    private String originSchema;
-    private String osm;
-    private String osmKey;
-    private String osmGeom;
-    private String osmSchema;
+    private String sourceTable; // source table name
+    private String sourceKeyColumn; // source table's primary key column name
+    private String sourceGeomColumn; // source table's geometry column name
+    private String sourceSchema; // schema where source table placed
+    private String targetTable; // target table name
+    private String targetKeyColumn; // target table's primary key column name
+    private String targetGeomColumn; // target table's geometry column name
+    private String targetSchema; // schema where target table placed
+    /**
+     *  Column relation for source and target tables
+     *  @see Relation
+     */
     private Relation[] relations;
 
     public TableWrapper() {
     }
 
-    public String getOriginSchema() {
-        return originSchema;
+    public String getSourceTable() {
+        return sourceTable;
     }
 
-    public void setOriginSchema(String originSchema) {
-        this.originSchema = originSchema;
+    public void setSourceTable(String sourceTable) {
+        this.sourceTable = sourceTable;
     }
 
-    public String getOsmSchema() {
-        return osmSchema;
+    public String getSourceKeyColumn() {
+        return sourceKeyColumn;
     }
 
-    public void setOsmSchema(String osmSchema) {
-        this.osmSchema = osmSchema;
+    public void setSourceKeyColumn(String sourceKeyColumn) {
+        this.sourceKeyColumn = sourceKeyColumn;
     }
 
-    public String getOriginKey() {
-        return originKey;
+    public String getSourceGeomColumn() {
+        return sourceGeomColumn;
     }
 
-    public void setOriginKey(String originKey) {
-        this.originKey = originKey;
+    public void setSourceGeomColumn(String sourceGeomColumn) {
+        this.sourceGeomColumn = sourceGeomColumn;
     }
 
-    public String getOriginGeom() {
-        return originGeom;
+    public String getSourceSchema() {
+        return sourceSchema;
     }
 
-    public void setOriginGeom(String originGeom) {
-        this.originGeom = originGeom;
+    public void setSourceSchema(String sourceSchema) {
+        this.sourceSchema = sourceSchema;
     }
 
-    public String getOsmKey() {
-        return osmKey;
+    public String getTargetTable() {
+        return targetTable;
     }
 
-    public void setOsmKey(String osmKey) {
-        this.osmKey = osmKey;
+    public void setTargetTable(String targetTable) {
+        this.targetTable = targetTable;
     }
 
-    public String getOsmGeom() {
-        return osmGeom;
+    public String getTargetKeyColumn() {
+        return targetKeyColumn;
     }
 
-    public void setOsmGeom(String osmGeom) {
-        this.osmGeom = osmGeom;
+    public void setTargetKeyColumn(String targetKeyColumn) {
+        this.targetKeyColumn = targetKeyColumn;
     }
 
-    public String getOrigin() {
-        return origin;
+    public String getTargetGeomColumn() {
+        return targetGeomColumn;
     }
 
-    public void setOrigin(String origin) {
-        this.origin = origin;
+    public void setTargetGeomColumn(String targetGeomColumn) {
+        this.targetGeomColumn = targetGeomColumn;
     }
 
-    public String getOsm() {
-        return osm;
+    public String getTargetSchema() {
+        return targetSchema;
     }
 
-    public void setOsm(String osm) {
-        this.osm = osm;
+    public void setTargetSchema(String targetSchema) {
+        this.targetSchema = targetSchema;
     }
 
     public Relation[] getRelations() {

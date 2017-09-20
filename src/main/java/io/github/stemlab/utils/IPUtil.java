@@ -3,7 +3,9 @@ package io.github.stemlab.utils;
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * Created by Azamat on 7/21/2017.
+ * Util for getting user IP address.
+ *
+ * @author Bolat Azamat
  */
 public class IPUtil {
     public static String getUserIpAddress(HttpServletRequest request) {

@@ -11,15 +11,21 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.springframework.web.servlet.view.JstlView;
 
 /**
- * Created by Azamat on 5/24/2017.
+ * @brief Extending from adapter allow to configure resource locations
+ *
+ * @author Bolat Azamat
+ * @see WebMvcConfigurerAdapter
  */
 @Configuration
 @EnableWebMvc
 @EnableScheduling
 @ComponentScan(basePackages = "io.github.stemlab.*")
 public class WebConfig extends WebMvcConfigurerAdapter {
+
     /**
      * Configure ViewResolvers to deliver preferred views.
+     *
+     * @return resolver points to /WEB-INF/view/ folder with jsp files
      */
     @Bean
     public InternalResourceViewResolver viewResolver() {

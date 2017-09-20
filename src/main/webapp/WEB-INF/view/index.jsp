@@ -630,7 +630,7 @@
         divToggles(["resultContainer"], false);
 
         $.get(
-            "${pageContext.request.contextPath}/intersectsProcess",
+            "${pageContext.request.contextPath}/processed_intersects",
             function (data) {
 
                 divToggles(["matchProcessing"], false);
@@ -891,7 +891,7 @@
 
         $.ajax({
             type: "POST",
-            url: "${pageContext.request.contextPath}/addToOsmDataSet",
+            url: "${pageContext.request.contextPath}/add_to_dataset",
             data: JSON.stringify(origArray),
             contentType: "application/json",
             async: false,
@@ -913,7 +913,7 @@
 
         $.ajax({
             type: "POST",
-            url: "${pageContext.request.contextPath}/hausdorffDistance",
+            url: "${pageContext.request.contextPath}/hausdorff_distance",
             data: JSON.stringify(arr),
             contentType: "application/json",
             async: false,
@@ -931,7 +931,7 @@
 
         $.ajax({
             type: "POST",
-            url: "${pageContext.request.contextPath}/surfaceDistance",
+            url: "${pageContext.request.contextPath}/surface_distance",
             data: JSON.stringify(arr),
             contentType: "application/json",
             async: false,
@@ -1228,7 +1228,7 @@
     function updateFeature(feature) {
         $.ajax({
             type: "POST",
-            url: "${pageContext.request.contextPath}/updateFeature",
+            url: "${pageContext.request.contextPath}/update_feature",
             contentType: 'application/json',
             data: JSON.stringify(makeSimple(feature)),
             success: function (respose) {

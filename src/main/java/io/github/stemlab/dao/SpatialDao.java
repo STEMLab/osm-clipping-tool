@@ -12,27 +12,15 @@ import java.util.List;
  */
 
 public interface SpatialDao {
-    List<Feature> getOSMIntersectsWithTopologyType(Envelope envelope) throws SQLException;
+    List<Feature> getTargetIntersectionWithTopologyType(Envelope envelope) throws SQLException;
 
-    List<Feature> getKRIntersectsWithTopologyType(Envelope envelope) throws SQLException;
+    List<Feature> getSourceIntersectionWithTopologyType(Envelope envelope) throws SQLException;
 
-    List<Feature> getUNFeatures() throws SQLException;
+    List<Feature> getSourceFeatures() throws SQLException;
 
-    List<Feature> getOSMFeatures() throws SQLException;
+    List<Feature> getTargetFeatures() throws SQLException;
 
-    void addToOSM(Feature feature) throws SQLException;
+    Long generateFeatureId() throws SQLException;
 
-    void replaceObjects(Feature from, Feature to) throws SQLException;
-
-    void deleteObjects(Feature feature) throws SQLException;
-
-    void testConnection(String connection, String user, String password) throws SQLException;
-
-    List<String> getSchemas() throws SQLException;
-
-    List<String> getTables(String schema) throws SQLException;
-
-    List<Column> getColumns(String schema, String table) throws SQLException;
-
-    void updateFeature(Feature feature) throws SQLException;
+    int getSRID(String schema, String table, String column) throws SQLException;
 }

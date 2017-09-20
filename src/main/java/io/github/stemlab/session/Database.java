@@ -6,7 +6,10 @@ import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Component;
 
 /**
- * Created by Azamat on 7/31/2017.
+ * @brief Stores connection settings to database
+ * @warning Current implementation support only PostgresSQL database
+ * @warning Scope singleton will be changed to session mode, to support connecting users to different database.
+ *  @author Bolat Azamat
  */
 @Component
 @Scope(value = "singleton", proxyMode = ScopedProxyMode.TARGET_CLASS)
@@ -18,6 +21,10 @@ public class Database {
     private String name;
     private String user;
     private String password;
+    /**
+     * Wrap two defined tables. Used to extract information about tables and their relation to each other
+     * @see TableWrapper
+     */
     private TableWrapper tableWrapper;
     private boolean isDBDefined;
     private boolean isRelationDefined;
@@ -26,6 +33,10 @@ public class Database {
         return isDBDefined;
     }
 
+    /**
+     *  If user successfully connected to database, database set to defined state
+     * @param DBDefined
+     */
     public void setDBDefined(boolean DBDefined) {
         isDBDefined = DBDefined;
     }
@@ -34,6 +45,10 @@ public class Database {
         return isRelationDefined;
     }
 
+    /**
+     *  If user define relation beetween two tables, relation set to defined state
+     * @param relationDefined
+     */
     public void setRelationDefined(boolean relationDefined) {
         isRelationDefined = relationDefined;
     }

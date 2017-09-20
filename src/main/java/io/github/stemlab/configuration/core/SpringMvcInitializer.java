@@ -8,9 +8,19 @@ import javax.servlet.Filter;
 
 
 /**
- * Created by Azamat on 5/24/2017.
+ * @brief This class initialize Spring MVC
+ * <p>
+ * This is the preferred approach for applications that use Java-based Spring configuration.
+ * Java-based configuration replaces web.xml
+ *
+ * @author Bolat Azamat
+ * @see AbstractAnnotationConfigDispatcherServletInitializer
  */
 public class SpringMvcInitializer extends AbstractAnnotationConfigDispatcherServletInitializer {
+
+    /**
+     * @return Web configuration class
+     */
     @Override
     protected Class<?>[] getRootConfigClasses() {
         return new Class[]{WebConfig.class};
@@ -26,6 +36,9 @@ public class SpringMvcInitializer extends AbstractAnnotationConfigDispatcherServ
         return new String[]{"/"};
     }
 
+    /**
+     * @return filter which encodes character using UTF-8
+     */
     @Override
     protected Filter[] getServletFilters() {
         CharacterEncodingFilter characterEncodingFilter = new CharacterEncodingFilter();

@@ -6,10 +6,18 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Polygon;
 
 /**
- * Created by Azamat on 7/11/2017.
+ * @author Bolat Azamat
+ *         @brief Utility class to calculate hausdorff and surface distance
+ * @see com.vividsolutions.jts.algorithm.match.HausdorffSimilarityMeasure
  */
 public class Distance {
 
+    /**
+     * @param a
+     * @param b
+     * @return calculated measure of geometry A and B
+     * @see Geometry
+     */
     public static double hausdorff(Geometry a, Geometry b) {
 
         /*double distance = DiscreteHausdorffDistance.distance(a, b, 0.25D);*/
@@ -17,6 +25,13 @@ public class Distance {
         return measure;
     }
 
+    /**
+     * Calculating surface distance. Ratio of A and B intersection to it's union
+     *
+     * @param a
+     * @param b
+     * @return A intersection B / A union B
+     */
     public static double surface(Geometry a, Geometry b) {
 
         GeometryFactory geometryFactory = new GeometryFactory();

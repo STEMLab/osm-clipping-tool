@@ -9,7 +9,16 @@ import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Component;
 
 /**
- * Created by Azamat on 7/13/2017.
+ * @brief In memory indexing using Rtree
+ * <p>
+ * <p> Current implementation support work with lines and surfaces.
+ * After bbox intersection search, all data saved in session,
+ * From where it can be extracted to process using Hausdorff or Surface Distance @see {@link io.github.stemlab.utils.Distance}
+ * Session also stores user IP
+ * </p>
+ *
+ * @author Bolat Azamat
+ * @see RTree
  */
 @Component
 @Scope(value = "session", proxyMode = ScopedProxyMode.TARGET_CLASS)
@@ -28,16 +37,31 @@ public class SessionStore {
         this.IP = IP;
     }
 
+    /**
+     * Initialize trees
+     */
     public void initialize() {
         this.lineTree = RTree.star().create();
         this.surfaceTree = RTree.star().create();
     }
 
+    /**
+     * Put lines to tree
+     *
+     * @param feature
+     * @see Feature
+     */
     public void putToLineTree(Feature feature) {
         int size = feature.getGeometry().getCoordinates().length;
         lineTree = lineTree.add(feature, Geometries.line(feature.getGeometry().getCoordinates()[0].x, feature.getGeometry().getCoordinates()[0].y, feature.getGeometry().getCoordinates()[size - 1].x, feature.getGeometry().getCoordinates()[size - 1].y));
     }
 
+    /**
+     * Put surface to tree
+     *
+     * @param feature
+     * @see Feature
+     */
     public void putToSurfaceTree(Feature feature) {
         surfaceTree = surfaceTree.add(feature, Geometries.rectangle(feature.getGeometry().getEnvelopeInternal().getMinX(), feature.getGeometry().getEnvelopeInternal().getMinY(), feature.getGeometry().getEnvelopeInternal().getMaxX(), feature.getGeometry().getEnvelopeInternal().getMaxY()));
     }

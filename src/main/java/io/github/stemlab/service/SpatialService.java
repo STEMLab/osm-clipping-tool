@@ -44,4 +44,8 @@ public interface SpatialService {
     List<Column> getOSMColumnsWithoutMainAttributes() throws SQLException;
 
     List<Column> getOriginColumnsWithoutMainAttributes() throws SQLException;
+
+    Long generateFeatureId() throws SQLException;
+
+    int getSRID(String schema, String table, String column) throws SQLException;
 }

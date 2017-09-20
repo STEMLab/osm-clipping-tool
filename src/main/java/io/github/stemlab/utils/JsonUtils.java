@@ -5,7 +5,9 @@ import com.google.gson.Gson;
 import java.lang.reflect.Type;
 
 /**
- * Created by Azamat on 6/2/2017.
+ * Utils to marshalling and unmarshalling from json @see {@link Gson}
+ *
+ * @author Bolat Azamat
  */
 public class JsonUtils {
     public static final Gson json = new Gson();

@@ -207,7 +207,4 @@ gradle-app.setting
 
 # # Work around https://youtrack.jetbrains.com/issue/IDEA-116898
 # gradle/wrapper/gradle-wrapper.properties
-src/main/java/io/github/stemlab/entity/enums/QueryType.java
-src/main/java/io/github/stemlab/utils/ClauseUtil.java
-src/main/java/io/github/stemlab/utils/QueryBuilder.java
-src/main/resources/log4j.properties
+
