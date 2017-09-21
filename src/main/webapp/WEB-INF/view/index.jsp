@@ -1178,7 +1178,7 @@
     var counter = 0;
     function check() {
         if (countFirst == 1 && countSecond == 1) {
-            hashmap.push({id: ++counter, column: idFirst, reference: idSecond});
+            hashmap.push({id: ++counter, sourceColumn: idFirst, targetColumn: idSecond});
             $("#relationResult").find('tbody')
                 .append($('<tr>').attr('class', 'clickable-row')
                     .append($('<td>')
@@ -1201,15 +1201,15 @@
 
     $('#saveButton').on('click', function (event) {
         var wrapper = {
-            originSchema: $("#first-schema-selection").val(),
-            osmSchema: $("#second-schema-selection").val(),
-            origin: $("#first-table-selection").val(),
-            osm: $("#second-table-selection").val(),
+            sourceSchema: $("#first-schema-selection").val(),
+            targetSchema: $("#second-schema-selection").val(),
+            sourceTable: $("#first-table-selection").val(),
+            targetTable: $("#second-table-selection").val(),
             relations: hashmap,
-            originKey: originKey,
-            originGeom: originGeom,
-            osmKey: osmKey,
-            osmGeom: osmGeom
+            sourceKeyColumn: originKey,
+            sourceGeomColumn: originGeom,
+            targetKeyColumn: osmKey,
+            targetGeomColumn: osmGeom
         };
         $.ajax({
             type: "POST",

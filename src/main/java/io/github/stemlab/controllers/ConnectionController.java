@@ -2,6 +2,7 @@ package io.github.stemlab.controllers;
 
 import io.github.stemlab.entity.Column;
 import io.github.stemlab.entity.TableWrapper;
+import io.github.stemlab.service.ConnectionService;
 import io.github.stemlab.service.SpatialService;
 import io.github.stemlab.session.Database;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
+ * @author Bolat Azamat
  * @brief Controller receives all ajax request /connect/*
  * <p>
  * After successful connection to DB, using this API following information can be retrieved:
@@ -28,8 +30,6 @@ import java.util.List;
  * </li>
  * <li>
  * Relations of two tables
- *
- * @author Bolat Azamat
  * @see TableWrapper
  * </li>
  * </un>
@@ -43,6 +43,9 @@ public class ConnectionController {
 
     @Autowired
     Database database;
+
+    @Autowired
+    ConnectionService connectionService;
 
     /**
      * Test connection, if all params right DB set defined, and schemas returned, otherwise @throws {@link SQLException}
@@ -60,7 +63,7 @@ public class ConnectionController {
     @ResponseBody
     List<String> testConnection(@RequestParam String name, @RequestParam String port, @RequestParam String password, @RequestParam String host, @RequestParam String user) throws SQLException {
 
-        spatialService.testConnection(name, host, user, port, password);
+        connectionService.testConnection(host, port, name, user, password);
         database.setDBDefined(true);
 
         database.setName(name);
@@ -69,7 +72,7 @@ public class ConnectionController {
         database.setPort(port);
         database.setPassword(password);
 
-        return spatialService.getSchemas();
+        return connectionService.getSchemas();
     }
 
     /**
@@ -83,7 +86,7 @@ public class ConnectionController {
     public
     @ResponseBody
     List<String> getTables(@RequestParam String schema) throws SQLException {
-        return spatialService.getTables(schema);
+        return connectionService.getTables(schema);
     }
 
     /**
@@ -98,7 +101,7 @@ public class ConnectionController {
     public
     @ResponseBody
     List<Column> getColumns(@RequestParam String schema, @RequestParam String table) throws SQLException {
-        return spatialService.getColumns(schema, table);
+        return connectionService.getColumns(schema, table);
     }
 
     /**
@@ -111,7 +114,7 @@ public class ConnectionController {
     public
     @ResponseBody
     List<String> getSchemas() throws SQLException {
-        return spatialService.getSchemas();
+        return connectionService.getSchemas();
     }
 
     /**

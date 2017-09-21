@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface ConnectionService {
 
-    void testConnection(String connection, String user, String password) throws SQLException;
+    void testConnection(String host, String port, String name, String user, String password) throws SQLException;
 
     List<String> getSchemas() throws SQLException;
 

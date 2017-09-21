@@ -21,8 +21,8 @@ public class ConnectionServiceImpl implements ConnectionService {
     ConnectionDao connectionDao;
 
     @Override
-    public void testConnection(String connection, String user, String password) throws SQLException {
-        connectionDao.testConnection(connection,user,password);
+    public void testConnection(String host, String port, String name, String user, String password) throws SQLException {
+        connectionDao.testConnection("jdbc:postgresql://" + host + ":" + port + "/" + name, user, password);
     }
 
     @Override

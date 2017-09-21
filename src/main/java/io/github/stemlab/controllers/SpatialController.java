@@ -6,6 +6,8 @@ import io.github.stemlab.entity.FeatureCollection;
 import io.github.stemlab.entity.enums.Action;
 import io.github.stemlab.exception.OSMToolException;
 import io.github.stemlab.service.SpatialService;
+import io.github.stemlab.service.TargetTableService;
+import io.github.stemlab.service.log.ActionLogService;
 import io.github.stemlab.session.SessionStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,9 +21,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.sql.SQLException;
 
 /**
- * @brief controller to work with all special operations
- *
  * @author Bolat Azamat
+ * @brief controller to work with all special operations
  */
 @Controller
 public class SpatialController {
@@ -31,6 +32,12 @@ public class SpatialController {
 
     @Autowired
     SessionStore sessionStore;
+
+    @Autowired
+    TargetTableService targetTableService;
+
+    @Autowired
+    ActionLogService actionLogService;
 
     /**
      * Get all intersected with bbox features;
@@ -49,8 +56,8 @@ public class SpatialController {
     @ResponseBody
     FeatureCollection getIntersects(Envelope envelope) throws OSMToolException, SQLException {
         sessionStore.initialize();
-        spatialService.logAction(sessionStore.getIP(), null, Action.BOX_VIEW);
-        return new FeatureCollection(spatialService.getIntersectsWithTopology(envelope));
+        actionLogService.log(sessionStore.getIP(), null, Action.BOX_VIEW);
+        return new FeatureCollection(spatialService.getIntersectionWithTopologyType(envelope));
     }
 
     /**
@@ -77,7 +84,7 @@ public class SpatialController {
      */
     @RequestMapping(value = "/add_to_dataset", method = RequestMethod.POST)
     public ResponseEntity addToDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
-        spatialService.addToOsmDataSet(features);
+        targetTableService.add(features);
         return new ResponseEntity(HttpStatus.OK);
     }
 
@@ -92,7 +99,7 @@ public class SpatialController {
      */
     @RequestMapping(value = "/replace", method = RequestMethod.POST)
     public ResponseEntity replaceInDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
-        spatialService.replaceObjects(features);
+        targetTableService.replace(features);
         return new ResponseEntity(HttpStatus.OK);
     }
 
@@ -107,7 +114,7 @@ public class SpatialController {
      */
     @RequestMapping(value = "/update_feature", method = RequestMethod.POST)
     public ResponseEntity updateFeature(@RequestBody Feature feature) throws OSMToolException, SQLException {
-        spatialService.updateFeature(feature);
+        targetTableService.update(feature);
         return new ResponseEntity(HttpStatus.OK);
     }
 
@@ -122,7 +129,7 @@ public class SpatialController {
      */
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     public ResponseEntity deleteInDataSet(@RequestBody Feature[] features) throws OSMToolException, SQLException {
-        spatialService.deleteObjects(features);
+        targetTableService.delete(features);
         return new ResponseEntity(HttpStatus.OK);
     }
 

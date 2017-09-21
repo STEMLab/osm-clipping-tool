@@ -6,10 +6,9 @@ import io.github.stemlab.entity.enums.QueryType;
 import io.github.stemlab.exception.OSMToolException;
 
 /**
+ * @author Bolat Azamat
  * @brief Helper to build queries to database (builder pattern)
  * @warning very basic implementation
- *
- * @author Bolat Azamat
  */
 public class QueryBuilder {
 
@@ -184,14 +183,14 @@ public class QueryBuilder {
 
             for (Relation relation : relations) {
                 if (QueryBuilder.this.insertColumns.toString().equals("")) {
-                    QueryBuilder.this.insertColumns.append(" ").append(relation.getReference());
+                    QueryBuilder.this.insertColumns.append(" ").append(relation.getTargetColumn());
                 } else {
-                    QueryBuilder.this.insertColumns.append(", ").append(relation.getReference());
+                    QueryBuilder.this.insertColumns.append(", ").append(relation.getTargetColumn());
                 }
                 if (QueryBuilder.this.insertValues.toString().equals("")) {
-                    QueryBuilder.this.insertValues.append(" ").append("'" + feature.getProperties().get(relation.getColumn()) + "'");
+                    QueryBuilder.this.insertValues.append(" ").append("'" + feature.getProperties().get(relation.getSourceColumn()) + "'");
                 } else {
-                    QueryBuilder.this.insertValues.append(", ").append("'" + feature.getProperties().get(relation.getColumn()) + "'");
+                    QueryBuilder.this.insertValues.append(", ").append("'" + feature.getProperties().get(relation.getSourceColumn()) + "'");
                 }
             }
 
@@ -211,9 +210,9 @@ public class QueryBuilder {
         public Builder setArrayFromFeature(Relation[] relations, Feature feature) {
             for (Relation relation : relations) {
                 if (QueryBuilder.this.setOperator.toString().equals("")) {
-                    QueryBuilder.this.setOperator.append(" ").append("SET ").append(relation.getReference()).append(" = ").append("'" + feature.getProperties().get(relation.getColumn()) + "'");
+                    QueryBuilder.this.setOperator.append(" ").append("SET ").append(relation.getTargetColumn()).append(" = ").append("'" + feature.getProperties().get(relation.getSourceColumn()) + "'");
                 } else {
-                    QueryBuilder.this.setOperator.append(", ").append(relation.getReference()).append(" = ").append("'" + feature.getProperties().get(relation.getColumn()) + "'");
+                    QueryBuilder.this.setOperator.append(", ").append(relation.getTargetColumn()).append(" = ").append("'" + feature.getProperties().get(relation.getSourceColumn()) + "'");
                 }
             }
             return this;

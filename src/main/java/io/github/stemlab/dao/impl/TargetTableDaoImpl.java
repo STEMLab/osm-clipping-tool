@@ -7,6 +7,7 @@ import io.github.stemlab.entity.enums.QueryType;
 import io.github.stemlab.exception.DatabaseException;
 import io.github.stemlab.service.ConnectionService;
 import io.github.stemlab.service.SpatialService;
+import io.github.stemlab.service.log.ActionLogService;
 import io.github.stemlab.session.Database;
 import io.github.stemlab.session.SessionStore;
 import io.github.stemlab.utils.ClauseUtil;
@@ -35,6 +36,8 @@ public class TargetTableDaoImpl implements TargetTableDao {
     ConnectionService connectionService;
     @Autowired
     Database database;
+    @Autowired
+    ActionLogService actionLogService;
 
     @Override
     public void add(Feature feature) throws SQLException {
@@ -57,7 +60,7 @@ public class TargetTableDaoImpl implements TargetTableDao {
             // execute insert SQL stetement
             preparedStatement.executeUpdate();
 
-            spatialService.logAction(sessionStore.getIP(), key, Action.ADD);
+            actionLogService.log(sessionStore.getIP(), key, Action.ADD);
 
         } catch (SQLException e) {
 
@@ -97,7 +100,7 @@ public class TargetTableDaoImpl implements TargetTableDao {
             // execute insert SQL stetement
             preparedStatement.executeUpdate();
 
-            spatialService.logAction(sessionStore.getIP(), target.getId(), Action.REPLACE);
+            actionLogService.log(sessionStore.getIP(), target.getId(), Action.REPLACE);
 
         } catch (SQLException e) {
 
@@ -132,7 +135,7 @@ public class TargetTableDaoImpl implements TargetTableDao {
             // execute delete SQL stetement
             preparedStatement.executeUpdate();
 
-            spatialService.logAction(sessionStore.getIP(), feature.getId(), Action.DELETE);
+            actionLogService.log(sessionStore.getIP(), feature.getId(), Action.DELETE);
 
         } catch (SQLException e) {
 
@@ -170,7 +173,7 @@ public class TargetTableDaoImpl implements TargetTableDao {
             // execute insert SQL stetement
             preparedStatement.executeUpdate();
 
-            spatialService.logAction(sessionStore.getIP(), feature.getId(), Action.UPDATE);
+            actionLogService.log(sessionStore.getIP(), feature.getId(), Action.UPDATE);
 
         } catch (SQLException e) {
 
