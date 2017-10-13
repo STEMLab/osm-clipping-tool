@@ -27,7 +27,7 @@ public class TargetTableServiceImpl implements TargetTableService {
     public void add(Feature[] features) throws SQLException, OSMToolException {
         for (Feature feature : features) {
             if (feature.getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getSourceTable()) && feature.getProperties().get("source").equals("un")) {
+                if (feature.getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getSourceTable()) && feature.getProperties().get("table_type").equals("source")) {
                     targetTableDao.add(feature);
                 } else {
                     throw new OSMToolException(UNDEFINED_TABLE_EXCEPTION + feature.getProperties().get(TABLE_NAME_PROPERTY));
@@ -43,9 +43,9 @@ public class TargetTableServiceImpl implements TargetTableService {
         }
 
         if (features[0].getProperties().containsKey(TABLE_NAME_PROPERTY) && features[1].getProperties().containsKey(TABLE_NAME_PROPERTY)) {
-            if (features[0].getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getSourceTable()) && features[0].getProperties().get("source").equals("un")) {
+            if (features[0].getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getSourceTable()) && features[0].getProperties().get("table_type").equals("source")) {
                 targetTableDao.replace(features[0], features[1]);
-            } else if (features[1].getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getSourceTable()) && features[1].getProperties().get("source").equals("un")) {
+            } else if (features[1].getProperties().get(TABLE_NAME_PROPERTY).equals(database.getTableWrapper().getSourceTable()) && features[1].getProperties().get("table_type").equals("source")) {
                 targetTableDao.replace(features[1], features[0]);
             } else throw new OSMToolException("Table 'from' deosn't exist");
         } else throw new OSMToolException("table name doesn't exist");

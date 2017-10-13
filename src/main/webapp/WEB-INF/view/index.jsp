@@ -270,17 +270,6 @@
         del_features: false
     };
 
-    /*var wmsSource = new ol.source.ImageWMS({
-     url: 'http://localhost:8081/geoserver/osm_demo/wms',
-     params: {'LAYERS': ''}
-     });*/
-
-    /* var wmsLayer = new ol.layer.Image({
-     title: 'WMS',
-     visible: true,
-     source: wmsSource
-     });*/
-
     var osm = new ol.layer.Tile({
         title: 'OpenStreetMap',
         type: 'base',
@@ -384,7 +373,7 @@
 
     function getStyle(feature, matched) {
 
-        if (feature.getProperties().source == 'osm') {
+        if (feature.getProperties().source == 'target') {
             if (feature.getProperties().candidate != null) {
                 return new ol.style.Style({
                     stroke: new ol.style.Stroke({
@@ -421,7 +410,7 @@
                     })
                 })
             }
-        } else if (feature.getProperties().source == 'un') {
+        } else if (feature.getProperties().source == 'source') {
             if (feature.getProperties().candidate != null) {
                 return new ol.style.Style({
                     stroke: new ol.style.Stroke({
@@ -535,7 +524,7 @@
     function saveFeature(id) {
         var feature = select.getFeatures().getArray()[0];
         if (typeof feature != "undefined") {
-            if (feature.getProperties().source == "osm") {
+            if (feature.getProperties().source == "target") {
                 updateFeature(feature);
             }
             delete originalCoordinates[feature];
@@ -728,11 +717,11 @@
         setTimeout(function () {
             <c:if test="${isRelation eq true}">
             <c:forEach items="${relations.relations}" var="rel">
-            hashmap.push({id: ++counter, column: "${rel.column}", reference: "${rel.reference}"});
+            hashmap.push({id: ++counter, sourceColumn: "${rel.sourceColumn}", targetColumn: "${rel.targetColumn}"});
             $("#relationResult").find('tbody')
                 .append($('<tr>').attr('class', 'clickable-row')
                     .append($('<td>')
-                        .append($('<span>').attr('data-name-id', counter).attr('data-name-two', "${rel.reference}").html("<code>" + "${rel.column}" + "</code> &raquo; <code>" + "${rel.reference}" + "</code>"))
+                        .append($('<span>').attr('data-name-id', counter).attr('data-name-two', "${rel.targetColumn}").html("<code>" + "${rel.sourceColumn}" + "</code> &raquo; <code>" + "${rel.targetColumn}" + "</code>"))
                     )
                 );
             </c:forEach>
@@ -746,9 +735,9 @@
 
         if (e.target.getFeatures().getLength() == 1) {
             action_list.display_info = true;
-            if (e.target.getFeatures().getArray()[0].getProperties().source == 'osm') {
+            if (e.target.getFeatures().getArray()[0].getProperties().source == 'target') {
                 action_list.del_features = true;
-            } else if (e.target.getFeatures().getArray()[0].getProperties().source == 'un') {
+            } else if (e.target.getFeatures().getArray()[0].getProperties().source == 'source') {
                 action_list.add_features = true;
             }
         } else if (e.target.getFeatures().getLength() == 2) {
@@ -761,10 +750,10 @@
                         action_list.similarity_s = true;
                     }
                 } else {
-                    if (e.target.getFeatures().getArray()[0].getProperties().source == 'osm' && e.target.getFeatures().getArray()[1].getProperties().source == 'osm') {
+                    if (e.target.getFeatures().getArray()[0].getProperties().source == 'target' && e.target.getFeatures().getArray()[1].getProperties().source == 'target') {
                         action_list.del_features = true;
                     }
-                    else if (e.target.getFeatures().getArray()[0].getProperties().source == 'un' && e.target.getFeatures().getArray()[1].getProperties().source == 'un') {
+                    else if (e.target.getFeatures().getArray()[0].getProperties().source == 'source' && e.target.getFeatures().getArray()[1].getProperties().source == 'source') {
                         action_list.add_features = true;
                     }
                 }
@@ -776,9 +765,9 @@
             var onlyOSM = true;
             var onlyKR = true;
             $.each(e.target.getFeatures().getArray(), function (index, value) {
-                if (value.getProperties().source == 'un') {
+                if (value.getProperties().source == 'source') {
                     onlyOSM = false;
-                } else if (value.getProperties().source == 'osm') {
+                } else if (value.getProperties().source == 'target') {
                     onlyKR = false;
                 }
             });
@@ -812,7 +801,7 @@
             $("#action").css("display", "block");
             $("#action").attr("onclick", "replaceObjects()");
             $("#action").attr("class", "alert btn btn-warning row");
-            divToggle("action", true, "Replace OSM object <b>" + getObject(features, "osm").getId() + "</b> with UN object <b>" + getObject(features, "un").getId() + "</b>");
+            divToggle("action", true, "Replace OSM object <b>" + getObject(features, "target").getId() + "</b> with UN object <b>" + getObject(features, "source").getId() + "</b>");
         } else if (action_list.del_features) {
             $("#action").css("display", "block");
             $("#action").attr("onclick", "deleteObjects()");
@@ -1014,8 +1003,8 @@
                             .attr("value", value)
                             .text(value));
                 });
-                $("#first-schema-selection").val("${relations.originSchema}").change();
-                $("#second-schema-selection").val("${relations.osmSchema}").change();
+                $("#first-schema-selection").val("${relations.sourceSchema}").change();
+                $("#second-schema-selection").val("${relations.targetSchema}").change();
                 onTableChange("first-table-selection");
                 onTableChange("second-table-selection");
             }
@@ -1135,9 +1124,9 @@
                                 )
                             );
                     }
-                    <c:if test="${not empty relation.origin} and ${not empty relation.osm}">
-                    $("#first-table-selection").val("${relations.origin}").change();
-                    $("#second-table-selection").val("${relations.osm}").change();
+                    <c:if test="${not empty relations.sourceTable} and ${not empty relations.targetTable}">
+                    $("#first-table-selection").val("${relations.sourceTable}").change();
+                    $("#second-table-selection").val("${relations.targetTable}").change();
                     </c:if>
                 });
             }

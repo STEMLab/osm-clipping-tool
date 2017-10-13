@@ -68,8 +68,8 @@ public class SpatialServiceImpl implements SpatialService {
         List<Feature> listSurface = new LinkedList<Feature>();
         List<Feature> listLine = new LinkedList<Feature>();
 
-        List<Entry<Feature, Geometry>> buildings = sessionStore.getSurfaceTree().entries().filter(entry -> entry.value().getProperties().get("source").equals("un")).toList().toBlocking().single();
-        List<Entry<Feature, Geometry>> roads = sessionStore.getLineTree().entries().filter(entry -> entry.value().getProperties().get("source").equals("un")).toList().toBlocking().single();
+        List<Entry<Feature, Geometry>> buildings = sessionStore.getSurfaceTree().entries().filter(entry -> entry.value().getProperties().get("table_type").equals("source")).toList().toBlocking().single();
+        List<Entry<Feature, Geometry>> roads = sessionStore.getLineTree().entries().filter(entry -> entry.value().getProperties().get("table_type").equals("source")).toList().toBlocking().single();
 
         for (Entry<Feature, Geometry> feature : buildings) {
             double max = MAX_SURFACE_DISTANCE;
@@ -77,7 +77,7 @@ public class SpatialServiceImpl implements SpatialService {
 
             com.vividsolutions.jts.geom.Envelope g = feature.value().getGeometry().getEnvelopeInternal();
             Observable<Entry<Feature, Geometry>> entries =
-                    sessionStore.getSurfaceTree().search(Geometries.rectangle(g.getMinX(), g.getMinY(), g.getMaxX(), g.getMaxY())).filter(entry -> !entry.value().getProperties().get("source").equals("un"));
+                    sessionStore.getSurfaceTree().search(Geometries.rectangle(g.getMinX(), g.getMinY(), g.getMaxX(), g.getMaxY())).filter(entry -> !entry.value().getProperties().get("table_type").equals("source"));
 
             List<Entry<Feature, Geometry>> myList = entries.toList().toBlocking().single();
 
@@ -101,7 +101,7 @@ public class SpatialServiceImpl implements SpatialService {
         for (Entry<Feature, Geometry> feature : roads) {
             com.vividsolutions.jts.geom.Envelope g = feature.value().getGeometry().getEnvelopeInternal();
             Observable<Entry<Feature, Geometry>> entries =
-                    sessionStore.getLineTree().search(Geometries.rectangle(g.getMinX(), g.getMinY(), g.getMaxX(), g.getMaxY())).filter(entry -> !entry.value().getProperties().get("source").equals("un"));
+                    sessionStore.getLineTree().search(Geometries.rectangle(g.getMinX(), g.getMinY(), g.getMaxX(), g.getMaxY())).filter(entry -> !entry.value().getProperties().get("table_type").equals("source"));
             Long chosenFeature = null;
             double min = MAX_HAUSDORFF_DISTANCE;
             List<Entry<Feature, Geometry>> myList = entries.toList().toBlocking().single();

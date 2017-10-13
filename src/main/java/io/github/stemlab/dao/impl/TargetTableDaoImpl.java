@@ -1,5 +1,6 @@
 package io.github.stemlab.dao.impl;
 
+import io.github.stemlab.dao.ConnectionDao;
 import io.github.stemlab.dao.TargetTableDao;
 import io.github.stemlab.entity.Feature;
 import io.github.stemlab.entity.enums.Action;
@@ -21,7 +22,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-
+/**
+ * @brief Data access object implementation for TargetTableDao class
+ * @see TargetTableDao
+ *
+ * @author Bolat Azamat.
+ */
 @Repository
 public class TargetTableDaoImpl implements TargetTableDao {
 

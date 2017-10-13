@@ -14,7 +14,12 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * @brief Data access object implementation for ConnectionDao class
+ * @see ConnectionDao
+ * @inheritDoc
+ * @author Bolat Azamat.
+ */
 @Repository
 public class ConnectionDaoImpl implements ConnectionDao {
 

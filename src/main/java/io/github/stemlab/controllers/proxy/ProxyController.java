@@ -20,7 +20,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Created by kasyanov on 12.10.2016.
+ * @brief Proxy controller to avoid browser security issues on sending data to back end
+ *
+ * @author Bolat Azamat.
  */
 @Controller
 public class ProxyController {

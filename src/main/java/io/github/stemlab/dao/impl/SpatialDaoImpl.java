@@ -1,6 +1,7 @@
 package io.github.stemlab.dao.impl;
 
 import com.vividsolutions.jts.geom.Geometry;
+import io.github.stemlab.dao.ConnectionDao;
 import io.github.stemlab.dao.SpatialDao;
 import io.github.stemlab.entity.Column;
 import io.github.stemlab.entity.Envelope;
@@ -27,6 +28,12 @@ import java.util.LinkedList;
 import java.util.List;
 
 
+/**
+ * @brief Data access object implementation for SpatialDao class
+ * @see SpatialDao
+ *
+ * @author Bolat Azamat.
+ */
 @Repository
 public class SpatialDaoImpl implements SpatialDao {
 
@@ -86,7 +93,7 @@ public class SpatialDaoImpl implements SpatialDao {
                 HashMap<String, String> properties = new HashMap<String, String>();
                 properties.put(TOPOLOGY_TYPE, rs.getString(TOPOLOGY_TYPE));
                 properties.put(TABLENAME, rs.getString(TABLENAME));
-                properties.put("source", "osm");
+                properties.put("table_type", "target");
 
                 for (Column column : columns) {
                     properties.put(column.getName(), String.valueOf(rs.getObject(column.getName())));
@@ -229,7 +236,7 @@ public class SpatialDaoImpl implements SpatialDao {
                 feature.setId(rs.getLong(database.getTableWrapper().getSourceKeyColumn()));
                 HashMap<String, String> properties = new HashMap<String, String>();
                 properties.put(TABLENAME, rs.getString(TABLENAME));
-                properties.put("source", "un");
+                properties.put("table_type", "source");
 
                 for (Column column : columns) {
                     properties.put(column.getName(), String.valueOf(rs.getObject(column.getName())));
