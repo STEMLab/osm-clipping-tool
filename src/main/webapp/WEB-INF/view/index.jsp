@@ -373,7 +373,7 @@
 
     function getStyle(feature, matched) {
 
-        if (feature.getProperties().source == 'target') {
+        if (feature.getProperties().table_type == 'target') {
             if (feature.getProperties().candidate != null) {
                 return new ol.style.Style({
                     stroke: new ol.style.Stroke({
@@ -410,7 +410,7 @@
                     })
                 })
             }
-        } else if (feature.getProperties().source == 'source') {
+        } else if (feature.getProperties().table_type == 'source') {
             if (feature.getProperties().candidate != null) {
                 return new ol.style.Style({
                     stroke: new ol.style.Stroke({
@@ -453,9 +453,11 @@
     function getText(feature) {
 
         if (map.getView().getZoom() > 15 && map.getView().getZoom() <= 16) {
-            return (feature.getProperties().source).toUpperCase()
+            //return (feature.getProperties().table_type).toUpperCase()
+            return "";
         } else if (map.getView().getZoom() > 16) {
-            return String(feature.getId());
+           // return String(feature.getId());
+            return "";
         }
         else {
             return "";
@@ -524,7 +526,7 @@
     function saveFeature(id) {
         var feature = select.getFeatures().getArray()[0];
         if (typeof feature != "undefined") {
-            if (feature.getProperties().source == "target") {
+            if (feature.getProperties().table_type == "target") {
                 updateFeature(feature);
             }
             delete originalCoordinates[feature];
@@ -648,7 +650,7 @@
                         checkLine = true;
                         matchhausdorffHTML += '<tr>' + '<td class="col-md-3"><button class="btn btn-link selectFeature" data-feature-id="' + feature.getId() + '">' + feature.getId() + '</button></td>' + '<td class="col-md-3">' + (feature.getProperties().topology_type).toUpperCase() + '</td>' + '<td class="col-md-3"><button class="btn btn-link selectFeature" data-feature-id="' + feature.getProperties().candidate + '">' + feature.getProperties().candidate + '</button></td>' + '<td class="col-md-3">' + parseFloat(Math.round(feature.getProperties().candidateDistance * 100) / 100).toFixed(2) + ' %</td>' + '</tr>';
                     } else {
-                        console.log("ID: " + feature.getId() + " Source: " + feature.getProperties().source + " Topology type: " + feature.getProperties().topology_type + " Name: " + feature.getProperties().name);
+                        console.log("ID: " + feature.getId() + " Source: " + feature.getProperties().table_type + " Topology type: " + feature.getProperties().topology_type + " Name: " + feature.getProperties().name);
                     }
                     vectorSource.removeFeature(vectorSource.getFeatureById(feature.getId()));
                     vectorSource.addFeature(feature);
@@ -735,28 +737,19 @@
 
         if (e.target.getFeatures().getLength() == 1) {
             action_list.display_info = true;
-            if (e.target.getFeatures().getArray()[0].getProperties().source == 'target') {
+            if (e.target.getFeatures().getArray()[0].getProperties().table_type == 'target') {
                 action_list.del_features = true;
-            } else if (e.target.getFeatures().getArray()[0].getProperties().source == 'source') {
+            } else if (e.target.getFeatures().getArray()[0].getProperties().table_type == 'source') {
                 action_list.add_features = true;
             }
         } else if (e.target.getFeatures().getLength() == 2) {
             if (e.target.getFeatures().getArray()[0].getGeometry().getType() == e.target.getFeatures().getArray()[1].getGeometry().getType()) {
-                if (e.target.getFeatures().getArray()[0].getProperties().tablename != e.target.getFeatures().getArray()[1].getProperties().tablename) {
                     action_list.replace_features = true;
                     if (e.target.getFeatures().getArray()[0].getGeometry().getType() == 'MultiLineString') {
                         action_list.similarity_h = true;
                     } else if (e.target.getFeatures().getArray()[0].getGeometry().getType() == 'MultiPolygon') {
                         action_list.similarity_s = true;
                     }
-                } else {
-                    if (e.target.getFeatures().getArray()[0].getProperties().source == 'target' && e.target.getFeatures().getArray()[1].getProperties().source == 'target') {
-                        action_list.del_features = true;
-                    }
-                    else if (e.target.getFeatures().getArray()[0].getProperties().source == 'source' && e.target.getFeatures().getArray()[1].getProperties().source == 'source') {
-                        action_list.add_features = true;
-                    }
-                }
             } else {
                 //do nothing (for now)
             }
@@ -765,9 +758,9 @@
             var onlyOSM = true;
             var onlyKR = true;
             $.each(e.target.getFeatures().getArray(), function (index, value) {
-                if (value.getProperties().source == 'source') {
+                if (value.getProperties().table_type == 'source') {
                     onlyOSM = false;
-                } else if (value.getProperties().source == 'target') {
+                } else if (value.getProperties().table_type == 'target') {
                     onlyKR = false;
                 }
             });
@@ -784,7 +777,7 @@
         divToggles(["action", "action_info", "action_res"], false);
 
         if (action_list.display_info) {
-            divToggle("action_info", true, "<b>ID:</b> " + features[0].getId() + " <b>Source:</b> " + features[0].getProperties().source + " <b>Topology type:</b> " + features[0].getProperties().topology_type + " <b>Name:</b> " + ((features[0].getProperties().name == null) ? 'No information' : features[0].getProperties().name));
+            divToggle("action_info", true, "<b>ID:</b> " + features[0].getId() + " <b>Source:</b> " + features[0].getProperties().table_type + " <b>Topology type:</b> " + features[0].getProperties().topology_type + " <b>Name:</b> " + ((features[0].getProperties().name == null) ? 'No information' : features[0].getProperties().name));
         } else if (action_list.similarity_h) {
             getHausdorffDistance(features[0], features[1]);
         } else if (action_list.similarity_s) {
@@ -795,13 +788,13 @@
             $("#action").css("display", "block");
             $("#action").attr("onclick", "addOsmObjects()");
             $("#action").attr("class", "alert btn btn-warning row");
-            divToggle("action", true, "Add selected UN objects to OSM dataset");
+            divToggle("action", true, "Add selected objects to OSM dataset");
 
         } else if (action_list.replace_features) {
             $("#action").css("display", "block");
             $("#action").attr("onclick", "replaceObjects()");
             $("#action").attr("class", "alert btn btn-warning row");
-            divToggle("action", true, "Replace OSM object <b>" + getObject(features, "target").getId() + "</b> with UN object <b>" + getObject(features, "source").getId() + "</b>");
+            divToggle("action", true, "Replace OSM object <b>" + getObject(features, "target").getId() + "</b> with object <b>" + getObject(features, "source").getId() + "</b>");
         } else if (action_list.del_features) {
             $("#action").css("display", "block");
             $("#action").attr("onclick", "deleteObjects()");
@@ -864,7 +857,7 @@
 
     function getObject(features, type) {
         for (var i = 0; i < features.length; i++) {
-            if (features[i].getProperties().source == type) {
+            if (features[i].getProperties().table_type == type) {
                 return features[i];
             }
         }

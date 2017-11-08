@@ -170,7 +170,7 @@ public class SpatialDaoImpl implements SpatialDao {
                 HashMap<String, String> properties = new HashMap<String, String>();
                 properties.put(TOPOLOGY_TYPE, rs.getString(TOPOLOGY_TYPE));
                 properties.put(TABLENAME, rs.getString(TABLENAME));
-                properties.put("source", "un");
+                properties.put("table_type", "source");
 
                 for (Column column : columns) {
                     properties.put(column.getName(), String.valueOf(rs.getObject(column.getName())));
@@ -302,7 +302,7 @@ public class SpatialDaoImpl implements SpatialDao {
                 }
 
                 properties.put(TABLENAME, rs.getString(TABLENAME));
-                properties.put("source", "osm");
+                properties.put("table_type", "target");
                 feature.setProperties(properties);
 
                 GeoJSONReader reader = new GeoJSONReader();

@@ -68,7 +68,8 @@ public class SpatialServiceImpl implements SpatialService {
         List<Feature> listSurface = new LinkedList<Feature>();
         List<Feature> listLine = new LinkedList<Feature>();
 
-        List<Entry<Feature, Geometry>> buildings = sessionStore.getSurfaceTree().entries().filter(entry -> entry.value().getProperties().get("table_type").equals("source")).toList().toBlocking().single();
+        List<Entry<Feature, Geometry>> buildings = sessionStore.getSurfaceTree().entries().filter(
+                entry -> entry.value().getProperties().get("table_type").equals("source")).toList().toBlocking().single();
         List<Entry<Feature, Geometry>> roads = sessionStore.getLineTree().entries().filter(entry -> entry.value().getProperties().get("table_type").equals("source")).toList().toBlocking().single();
 
         for (Entry<Feature, Geometry> feature : buildings) {
